@@ -1,3 +1,5 @@
-SeLite API documentation
+See
+ * [SeLite API documentation](http://selite.github.io/docs/index.html).
+ * [SeLite user documentation](http://selite.github.io)
 
-This documents API of [SeLite](http://selite.github.io). It is generated from source of [SeLite](https://github.com/SeLite/SeLite) and [SelBlocks Global](https://github.com/SeLite/SelBlocksGlobal).
+This project holds API documentation of [SeLite](https://github.com/SeLite/SeLite) (including [SelBlocks Global](http://github.com/SeLite/SelBlocksGlobal)).
