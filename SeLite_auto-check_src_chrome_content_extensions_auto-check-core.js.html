@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: SeLite/auto-check/src/chrome/content/extensions/auto-check-core.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: SeLite/auto-check/src/chrome/content/extensions/auto-check-core.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/*  Copyright 2014 Peter Kehl
+    This file is part of SeLite Auto Check.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with this program.  If not, see &lt;http://www.gnu.org/licenses/>.
+*/
+"use strict";
+
+// The following if() check is needed because Se IDE loads extensions twice - https://github.com/SeleniumHQ/selenium/issues/1549
+//if( typeof HtmlRunnerTestLoop!=='undefined' ) {
+var loadedTimes= SeLiteExtensionSequencer.coreExtensionsLoadedTimes['SeLiteAutoCheck'] || 0;
+if( loadedTimes===1 ) { // Setup the overrides on the second load
+    // @TODO Use $$.fn.interceptAfter from SelBlocks/Global, if it becomes GNU L/GPL
+    ( function(global) {
+        var settingsModule= SeLiteSettings.Module.forName( 'extensions.selite-settings.common' );
+        var originalSeLiteAfterCurrentCommand= global.seLiteAfterCurrentCommand;
+        global.seLiteAfterCurrentCommand= function seLiteAfterCurrentCommand() {
+            originalSeLiteAfterCurrentCommand.call( this );
+            // See AssertResult.prototype.setFailed and AssertHandler.prototype.execute in selenium-commandhandlers.js.
+            // For getters (e.g. getEval), this.result is an instance of AccessorResult, which doesn't have field .passed (as of Selenium IDE 2.5.0). That's why the following checks !this.result.failed rather than this.result.passed.
+            if( !this.result.failed ) { // Only perform the checks, if there was no Selenese failure already. Otherwise if the following raised an error, it would hide the previous error.
+                var fieldsDownToFolder= settingsModule.getFieldsDownToFolder( /*folderPath:*/undefined, /*dontCache:*/true );
+                var detectorClassName;
+                if( fieldsDownToFolder['autoCheckDetector'].entry ) {
+                    detectorClassName= Object.keys( fieldsDownToFolder['autoCheckDetector'].entry )[0];
+                }
+                else
+                if( fieldsDownToFolder['autoCheckDetectorCustom'].entry ) {
+                    detectorClassName= fieldsDownToFolder['autoCheckDetectorCustom'].entry;
+                }
+                if( detectorClassName &amp;&amp; !SeLiteMisc.cascadeField(global, detectorClassName, true) ) {
+                    throw new SeleniumError( 'SeLite AutoCheck is configured to use unknown class ' +detectorClassName );
+                }
+                if( detectorClassName ) {
+                    var detectorClass= SeLiteMisc.cascadeField(global, detectorClassName, true);
+                    var detector= new detectorClass( fieldsDownToFolder['autoCheckRequired'].entry, fieldsDownToFolder['autoCheckRefused'].entry, fieldsDownToFolder['autoCheckIgnored'].entry, fieldsDownToFolder['autoCheckAssert'].entry );
+                    var doc= selenium.browserbot.getDocument();
+                    LOG.debug( 'SeLiteSettings Auto Check validating: ' +selenium.browserbot.getCurrentWindow().location );
+                    var message= detector.failedRequired( doc ) || detector.failedRefused( doc ) || detector.failedNotIgnored( doc );
+                    if( message ) {
+                        if( detector.assert ) {
+                            throw new SeleniumError( message );
+                        }
+                        else {
+                            // see AssertHandler.prototype.execute() in chrome://selenium-ide/content/selenium-core/scripts/selenium-commandhandlers.js
+                            var result= new AssertResult();
+                            result.setFailed( "(Ignore this log line, see the other one. It's due to http://selite.github.io/ThirdPartyIssues > verify* should show the diff)" );
+                            this.result= result;
+                            this.waitForCondition = this.result.terminationCondition;
+                            LOG.error( message );
+                        }
+                    }
+                }
+            }
+        };
+    } )( this );
+}
+SeLiteExtensionSequencer.coreExtensionsLoadedTimes['SeLiteAutoCheck']= loadedTimes+1;
+
+/** @namespace */
+var SeLiteAutoCheck= {};
+
+( function() {
+    /** Parent class of all Auto Check detectors. For description of items of parameters required, refused and ignored check the actual implementation subclasses.
+     * When debugging failedXYZ() methods, beware that running a single verification that fails (by double-clicking) doesn't log any message about the failure. It only highlights the command (in the editor matrix) in red/pink. Only when you run a test case/suite then any failed verifications log their messages in the log (in red).
+     *  @param {object} required Object serving as an array of entries matching any required contents. In default implementation an entry can be any Selenese locator.
+     *  @param {object} refused Object serving as an array of entries matching any refused contents. In default implementation an entry can be any Selenese locator.
+     *  @param {object} ignored Object serving as an array of entries matching any ignored notices/warnings/errors. The detail of on using these entries is up to the implementation of failedNotIgnored(document) in the actual subclass. In default implementation an entry can be any Selenese locator.
+     *  @param {boolean} assert Whether to run the checks as assertions; otherwise they are run as validation only. Optional, false by default.
+     * */
+    SeLiteAutoCheck.Detector= function Detector( required={}, refused={}, ignored={}, assert=false ) {
+        this.required= required;
+        this.refused= refused;
+        this.ignored= ignored;
+        this.assert= assert;
+        typeof this.required==='object' || SeLiteMisc.fail( 'parameter required must be an object, if provided' );
+        typeof this.refused==='object' || SeLiteMisc.fail( 'parameter refused must be an object, if provided' );
+        typeof this.ignored==='object' || SeLiteMisc.fail( 'parameter ignored must be an object, if provided' );
+        typeof this.assert==='boolean' || SeLiteMisc.fail( 'parameter assert must be a boolean, if provided' );
+    };
+    /** Check the document for required part(s).
+     *  @param {object} document
+     *  @return {(boolean|string)} False on success (i.e. the document didn't fail); string message on failure.
+     * */
+    SeLiteAutoCheck.Detector.prototype.failedRequired= function failedRequired( document ) {
+        for( var key in this.required ) {
+            if( eval_locator( this.required[key], document ).length===0 ) {
+                return "Locator " +this.required[key]+ " didn't match any element.";
+            }
+        }
+        return false;
+    };
+    /** Check the element for part(s) that it must not have.
+     *  @param {object} document
+     *  @return {(boolean|string)} False on success (i.e. the document didn't fail); string message on failure.
+     * */
+    SeLiteAutoCheck.Detector.prototype.failedRefused= function failedRefused( document ) {
+        for( var key in this.refused ) {
+            if( eval_locator( this.refused[key], document ).length!==0 ) {
+                return "Locator " +this.refused[key]+ " matched some element(s).";
+            }
+        }
+        return false;
+    };
+    /** Check the element for part(s) that it must not have and that are not to be ignored. Default implementation doesn't check anything.
+     *  @param {object} document
+     *  @return {(boolean|string)} False on success (i.e. the document didn't fail); string message on failure.
+     * */
+    SeLiteAutoCheck.Detector.prototype.failedNotIgnored= function failedNotIgnored( document ) { return false; };
+
+    /** Auto Check for PHP (optionally with XDebug).
+     * @param {object} required Object of locators.
+     * @param {object} refused Object of locators.
+     * @param {object} ignored Object of logical XPath conditions - expressions that fit into [] part of XPath. They match warnings/notices/errors that are not to be reported. They can refer to the matched text node as '.'. They should not contain relative references to parent/sibling nodes. They can match an error message (a part after 'Notice', 'Warning', 'Error') or the file path of the leaf file where the error comes from. If you follow this, the matching works whether you use PHP with Xdebug or without it.
+     *  @param {boolean} assert See the same parameter of SeLiteAutoCheck.Detector().
+    */
+    SeLiteAutoCheck.DetectorPHP= function DetectorPHP( required, refused, ignored, assert ) {
+        SeLiteAutoCheck.Detector.call( this, required, refused, ignored, assert );
+    };
+    SeLiteAutoCheck.DetectorPHP.prototype= Object.create( SeLiteAutoCheck.Detector.prototype );
+    SeLiteAutoCheck.DetectorPHP.prototype.constructor= SeLiteAutoCheck.DetectorPHP;
+
+    SeLiteAutoCheck.DetectorPHP.prototype.failedNotIgnored= function failedNotIgnored( document ) {
+        // At some point, xdebug 2.2.1 on PHP 5.4.9 generated error messages with no formatting. Then I'd have to match: errorElements= eval_xpath( "//*[ contains(text(), 'Notice:') or contains(text(), 'Warning:') or contains(text(), 'Error:') or contains(text(), 'Fatal error:')]", document );
+        var errorElements= eval_xpath( "//table[ contains(@class, 'xdebug-error') ]", document);
+        var fromXdebug= errorElements.length!==0;
+        if( !fromXdebug ) {
+            // Following matches one node per error - the description/message
+            errorElements= eval_xpath( "//b[ .='Notice' or .='Warning' or .='Error' or .='Fatal error']/following-sibling::node()[1][ starts-with(., ': ') ]", document );
+            // I could match both the description and file path by one regex, but matching and handling results would be more complicated:
+            // "//b[ .='Notice' or .='Warning' or .='Error' ][ following-sibling::node()[1][starts-with(., ': ') and following-sibling::node()[2][contains(., 'on line')] ] ]/following-sibling::node()[ 1 ]"
+        }
+        errorElementLoop:
+        for( var errorElement of errorElements ) {
+            var errorFileElements= undefined; // element containing the file path where the error was reported (if displayed and if !fromDebug)
+            // If fromXdebug, then I don't match the file location separately - it's already within errorElement
+            if( !fromXdebug ) {
+                //errorFileElements= eval_xpath( "./following-sibling::node()[1]", document, {contextNode: errorElement} );
+                errorFileElements= eval_xpath( "/following-sibling::b[1]", document, {contextNode: errorElement} );
+            }
+            for( var key in this.ignored ) {
+                var ignoredXPath= '/self::node()[' +this.ignored[key]+ ']';
+                if( eval_xpath( ignoredXPath, document, {contextNode: errorElement} ).length!==0 ) {
+                    continue errorElementLoop;
+                }
+                if( errorFileElements &amp;&amp; errorFileElements.length!==0 ) {
+                    if( eval_xpath( ignoredXPath, document, {contextNode: errorFileElements[0]} ).length!==0 ) {
+                        continue errorElementLoop;
+                    }                        
+                }
+            }
+            return 'There was a notice/warning/error that is not on the ignored list: ' +
+                (errorElement.wholeText
+                    ? errorElement.wholeText
+                    : errorElement.textContent
+                )+
+                (errorFileElements &amp;&amp; errorFileElements.length!==0
+                    ? ' ' +errorFileElements[0].textContent
+                    : ''
+                );
+        }
+        return false;
+    };
+} ) ();</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Abstract.html">Abstract</a></li><li><a href="CellInfo.html">CellInfo</a></li><li><a href="Column.html">Column</a></li><li><a href="Constructor.html">Constructor</a></li><li><a href="Create.html">Create</a></li><li><a href="FilledIn.html">FilledIn</a></li><li><a href="global.TestCaseDebugContext.html">TestCaseDebugContext</a></li><li><a href="RowInfo.html">RowInfo</a></li><li><a href="RowLevel.html">RowLevel</a></li><li><a href="RowLevelOrColumn.html">RowLevelOrColumn</a></li><li><a href="selblocks.Logger.html">Logger</a></li><li><a href="Selenium.html">Selenium</a></li><li><a href="SeLiteData.Db.html">Db</a></li><li><a href="SeLiteData.Table.html">Table</a></li><li><a href="SeLiteMisc.Enum.html">Enum</a></li><li><a href="SeLiteSettings.FieldInformation.html">FieldInformation</a></li><li><a href="SeLiteSettings.TestDbKeeper.html">TestDbKeeper</a></li><li><a href="SeLiteSettings.TestDbKeeper.Columns.html">Columns</a></li><li><a href="ValueSource.html">ValueSource</a></li></ul><h3>Namespaces</h3><ul><li><a href="global.html#global">global</a></li><li><a href="selblocks.html">selblocks</a></li><li><a href="selblocks.fn.html">fn</a></li><li><a href="selblocks.InfixExpressionParser.html">InfixExpressionParser</a></li><li><a href="selblocks.xp.html">xp</a></li><li><a href="SeLiteAutoCheck.html">SeLiteAutoCheck</a></li><li><a href="SeLiteData.html">SeLiteData</a></li><li><a href="SeLiteMisc.html">SeLiteMisc</a></li><li><a href="SeLiteSettings.html">SeLiteSettings</a></li></ul><h3>Global</h3><ul><li><a href="global.html#'static'">'static'</a></li><li><a href="global.html#allowMultivaluedNonChoices">allowMultivaluedNonChoices</a></li><li><a href="global.html#applicableColumns">applicableColumns</a></li><li><a href="global.html#array">array</a></li><li><a href="global.html#Array">Array</a></li><li><a href="global.html#bool">bool</a></li><li><a href="global.html#cachedManifests">cachedManifests</a></li><li><a href="global.html#cacheRatio">cacheRatio</a></li><li><a href="global.html#callStack">callStack</a></li><li><a href="global.html#checkField">checkField</a></li><li><a href="global.html#chooseFileOrFolder">chooseFileOrFolder</a></li><li><a href="global.html#chooseJavascriptFile">chooseJavascriptFile</a></li><li><a href="global.html#createTreeChildren">createTreeChildren</a></li><li><a href="global.html#directChildList">directChildList</a></li><li><a href="global.html#directRequisiteIncompatible">directRequisiteIncompatible</a></li><li><a href="global.html#Dotclear">Dotclear</a></li><li><a href="global.html#Drupal">Drupal</a></li><li><a href="global.html#ensureFieldName">ensureFieldName</a></li><li><a href="global.html#expandStoredVars">expandStoredVars</a></li><li><a href="global.html#fieldTreeRow">fieldTreeRow</a></li><li><a href="global.html#format">format</a></li><li><a href="global.html#formatCommands">formatCommands</a></li><li><a href="global.html#FUDforum">FUDforum</a></li><li><a href="global.html#generateFields">generateFields</a></li><li><a href="global.html#generateSets">generateSets</a></li><li><a href="global.html#generateTreeColumns">generateTreeColumns</a></li><li><a href="global.html#global#infoURLtoDownloadURL">infoURLtoDownloadURL</a></li><li><a href="global.html#global#int">int</a></li><li><a href="global.html#global#loadXMLDoc">loadXMLDoc</a></li><li><a href="global.html#global#locateConnectionInfo">locateConnectionInfo</a></li><li><a href="global.html#global#Location">Location</a></li><li><a href="global.html#global#manifestsDownToFolder">manifestsDownToFolder</a></li><li><a href="global.html#global#modules">modules</a></li><li><a href="global.html#global#moduleSetFields">moduleSetFields</a></li><li><a href="global.html#global#name">name</a></li><li><a href="global.html#global#Namespace-like">Namespace-like</a></li><li><a href="global.html#global#newValueRow">newValueRow</a></li><li><a href="global.html#global#NTH_RECORD">NTH_RECORD</a></li><li><a href="global.html#global#Null">Null</a></li><li><a href="global.html#global#Object">Object</a></li><li><a href="global.html#global#Only">Only</a></li><li><a href="global.html#global#parse">parse</a></li><li><a href="global.html#global#parseCommandsAndHeader">parseCommandsAndHeader</a></li><li><a href="global.html#global#phpMyFAQ">phpMyFAQ</a></li><li><a href="global.html#global#PluginDetails">PluginDetails</a></li><li><a href="global.html#global#preProcessEdit">preProcessEdit</a></li><li><a href="global.html#global#propertiesPart">propertiesPart</a></li><li><a href="global.html#global#proxyVerifyFieldsObjectHandler">proxyVerifyFieldsObjectHandler</a></li><li><a href="global.html#global#readFile">readFile</a></li><li><a href="global.html#global#removeCommentsGetLines">removeCommentsGetLines</a></li><li><a href="global.html#global#requisiteDetailsSubset">requisiteDetailsSubset</a></li><li><a href="global.html#global#roles">roles</a></li><li><a href="global.html#global#SeLiteMiscClassForVerifiedScope">SeLiteMiscClassForVerifiedScope</a></li><li><a href="global.html#global#Serendipity">Serendipity</a></li><li><a href="global.html#global#Serving">Serving</a></li><li><a href="global.html#global#setCellText">setCellText</a></li><li><a href="global.html#global#showingPerFolder">showingPerFolder</a></li><li><a href="global.html#global#SQLiteConnectionInfo">SQLiteConnectionInfo</a></li><li><a href="global.html#global#Static">Static</a></li><li><a href="global.html#global#string">string</a></li><li><a href="global.html#global#treeCell">treeCell</a></li><li><a href="global.html#global#treeColumn">treeColumn</a></li><li><a href="global.html#global#treeColumnElements">treeColumnElements</a></li><li><a href="global.html#global#treeRowsOrChildren">treeRowsOrChildren</a></li><li><a href="global.html#global#unnamedTestSuiteFolderChangeHandlers">unnamedTestSuiteFolderChangeHandlers</a></li><li><a href="global.html#global#updateSpecial">updateSpecial</a></li><li><a href="global.html#global#valueCompound">valueCompound</a></li><li><a href="global.html#global#Whether">Whether</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Fri Jun 10 2016 10:48:03 GMT+1000 (AEST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

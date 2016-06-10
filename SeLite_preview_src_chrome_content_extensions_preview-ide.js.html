@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: SeLite/preview/src/chrome/content/extensions/preview-ide.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: SeLite/preview/src/chrome/content/extensions/preview-ide.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/*  Copyright 2016 Peter Kehl
+    This file is part of SeLite Preview.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with this program.  If not, see &lt;http://www.gnu.org/licenses/>.
+*/
+"use strict";
+
+// For initialisation mechanism, see ide-extension.js of SeLiteMisc.
+if( window.location.href==='chrome://selenium-ide/content/selenium-ide.xul' ) {
+    ( function() {
+        // This is defined on Editor.prototype, rather than on Selenium.prototype. This way it can access 'editor' object, and through it 'selenium' object, too. Selenese getEval command and custom Selenese commands (defined on Selenium.prototype) can access 'editor' object in order to call editor.openPreview().
+        /** Goals:
+         *  - Bookmarkable (except for the connection back to Selenium IDE, and except for any secure data)
+         *  - Can access files relative to the template (whether via http://, https:// or file://). However, in order to access local file://, the topmost URL must not use 'data:' meta-protocol. We could have a file that would have an iframe that would use data:. However, that adds an unnecessary layer. Hence we use query or hash part of URL - which works with both http://, https:// and file://. The user can still pass a data: URL, if it contains any images and CSS that it needs. Then the user can pass/bookmark the result URL without any files. TODO refer to a separate add-on to generate those.
+         *  Following describes the API. For  use cases see https://selite.github.io/Preview.
+         *  &lt;br/>
+         *  In the template:
+         *  1. Extract the encoded data. If config.inHash is false, extract from location.query the part (if any) between 'seLitePreviewData=' and the next '&amp;' (if any). If config.inHash is true, then strip leading hash off location.hash.
+         *  2. If there is any such part, apply decodeURIComponent() (if config.base64ForData is false/undefined) or atob() (if config.base64ForData is true). Then apply JSON.parse().
+         *  @param {string} filePathOrURL File path or URL of the HTML/XML preview file/template. If it's a file path, you can use either / or \ as directory separators (they will get translated for the current system). To make it portable, specify it as a relative path and pass it appended to result of SeLiteSettings.getTestSuiteFolder(). It must not contain a #hash/fragment part.
+         *  @param {*} [data] Usually an anonymous object or an array. The template must not rely on any class membership or on any fields that are functions.
+         * @param {object} [config] Configuration with any of fields: {
+         *      addTimestamp: boolean. If true, then this doesn't make the URL unique by adding a timestamp in the query part of filePathOrURL. False by default.
+         *      dataParameterName: name of HTTP GET parameter ('seLitePreviewData' by default), added to the query part of filePathOrURL. Only used when passing data through URL query rather than through URL hash (fragment, anchor).
+         *      inSearch: boolean, whether to pass the encoded data in the URI search (query) part, instead of URI hash (fragment) part. False (i.e. using hash) by default - which also works with data: URLs.
+         *      base64ForData: boolean, whether to base64-encode the data, instead of url-encode. False by default.
+         *  }
+         *  @return {Promise} Promise that resolves to Window object.
+         * */
+        //var console= Components.utils.import("resource://gre/modules/Console.jsm", {}).console;
+        Editor.prototype.openPreview= function openPreview( urlOrPromise, data={}, config={} ) {
+            var promise= !SeLiteMisc.isInstance( urlOrPromise, Promise)
+                ? Promise.resolve( urlOrPromise )
+                : urlOrPromise;
+            
+            'dataParameterName' in config || (config.dataParameterName='seLitePreviewData');
+            'inSearch' in config || (config.inSearch=false);
+            'base64ForData' in config || (config.base64ForData=false);
+            /** Side research on passing data via #hash part of URL:
+                   JSON.stringify( {hi: 'you &amp; i'} ) -> '{"hi":"you &amp; i"}'
+                however:
+                   window.open( someURL + '#' +JSON.stringify( {hi: 'you &amp; i'} ) )
+                   opens a window with URL ending with #{"hi":"you%20&amp;%20i"}
+                   Firefox adds transformation of spaces to %20. When Javascript from that loaded page
+                   uses its location.hash, it is '#{"hi":"you%20&amp;%20i"}'. However, that doesn't feel robust.
+                Anyway, let's url-encode or base64-encode the hash as per RFC on URI http://tools.ietf.org/html/rfc3986#section-3.5.
+           */
+
+            var json= JSON.stringify( data );
+            var encoded= config.base64ForData
+                ? btoa(json)
+                : encodeURIComponent(json);
+            
+            return promise.then(
+                url => {
+                    if( config.inSearch ) {
+                        url+= url.indexOf('?')>0
+                            ? '&amp;'
+                            : '?';
+                        url+= config.dataParameterName+ '=' +encoded;
+                    }
+                    else {
+                        url+= '#' +encoded;
+                    }
+                    var win= window.open( url, /*@TODO parameters - remove toolbar...*/'resizable=1');
+                    // Using https://developer.mozilla.org/en-US/docs/Mozilla/Tech/XPCOM/Language_Bindings/Components.utils.exportFunction
+                    // For details see https://developer.mozilla.org/en-US/docs/Mozilla/Gecko/Script_security
+                    // Following exported the function, but the preview couldn't access selenium().callBackOutFlow()
+                    /*Components.utils.exportFunction(
+                        function selenium(){ return editor.selDebugger.runner.selenium;},
+                        win,
+                        {
+                         defineAs: 'selenium',
+                         allowCrossOriginArguments:true
+                        }
+                    );/**/
+                    
+                    Components.utils.exportFunction(
+                        function callBackOutFlow( seleneseFunctionName, parameters ){ editor.selDebugger.runner.selenium.callBackOutFlow( seleneseFunctionName, parameters ) },
+                        win,
+                        {
+                         defineAs: 'callBackOutFlow',
+                         allowCrossOriginArguments:true
+                        }
+                    );
+            
+                    //var waivedWin= Components.utils.waiveXrays(win);
+                    //This didn't work well!: waivedWin.selenium= editor.selDebugger.runner.selenium;
+                    
+                    //console.error('exported. waivedWin contains seLitePreviewConnect: ' +('seLitePreviewConnect' in waivedWin)); // waivedWin.seLitePreviewConnect was not defined!
+                    /*
+                    win.addEventListener( 'load', () => {
+                        // Following passed an object, but 'selenium' field was undefined.
+                        //win.wrappedJSObject.seLitePreviewConnect( {selenium: editor.selDebugger.runner.selenium} );
+                        
+                        // Following didn't work: win.seLitePreviewConnect was undefined!
+                        win.selenium= editor.selDebugger.runner.selenium;
+                        if( typeof win.seLitePreviewConnect!=='undefined' ) {
+                            console.error('calling win.seLitePreviewConnect');
+                            win.seLitePreviewConnect( {
+                                selenium: editor.selDebugger.runner.selenium,
+                                editor: this,
+                                parentAbsoluteURL
+                            } );
+                        }else {console.error('no win.seLitePreviewConnect');}
+                    }, true );
+                    /**/
+                    return win;
+                },
+                failure => {
+                    throw new Error(failure);
+                }
+            );
+        };
+        
+        /** Similar to Editor.prototype.openPreview(), but this doesn't fetch the document (it doesn't encode it as a data: URL).
+         * @param {object} config Similar to Editor.prototype.openPreview(), but here it accepts one more optional field: urlEncodingForContent of mixed type. It indicates whether to use URL encoding for content, instead of base64 encoding. This doesn't affect the Javascript and how it receives the data. Undefined by default, which means automatic. See Selenium.prototype.encodeFile().
+         */
+        Editor.prototype.openPreviewEncode= function openPreviewEncode( urlOrPromise, data={}, config={}, filter=undefined ) {
+            var promise= !(urlOrPromise instanceof Promise)
+                ? Promise.resolve( urlOrPromise )
+                : urlOrPromise;
+            'urlEncodingForContent' in config || (config.urlEncodingForContent= undefined);
+            var selenium= this.selDebugger.runner.selenium;
+            var Selenium= selenium.constructor;
+            return promise.then(
+                url => {
+                    // Add a timestamp to make the query unique
+                    if( 'addTimestamp' in config &amp;&amp; config.addTimestamp ) {
+                        url+= ( url.indexOf('?')&lt;0
+                            ? '?'
+                            : '&amp;'
+                        )+ 'seLiteTimestamp=' +Date.now();
+                    }
+
+                    url.indexOf('#')&lt;0 || SeLiteMisc.fail( 'Parameter filePathOrURL must not contain a #hash (fragment): ' +filePathOrURL );
+                    return this.openPreview( selenium.encodeFileRecursively(url, config.urlEncodingForContent, filter), data, config );
+                },
+                failure => {
+                    throw new Error(failure);
+                }
+            );
+        };
+        
+        // 'editor' is an instance of either StandaloneEditor or SidebarEditor. Those classes don't refer to Editor.prototype, but they have copies of all functions from Editor.prototype (copied via objectExtend()).
+        SidebarEditor.prototype.openPreview= StandaloneEditor.prototype.openPreview= Editor.prototype.openPreview;
+        SidebarEditor.prototype.openPreviewEncode= StandaloneEditor.prototype.openPreviewEncode= Editor.prototype.openPreviewEncode;
+    } ) ();
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Abstract.html">Abstract</a></li><li><a href="CellInfo.html">CellInfo</a></li><li><a href="Column.html">Column</a></li><li><a href="Constructor.html">Constructor</a></li><li><a href="Create.html">Create</a></li><li><a href="FilledIn.html">FilledIn</a></li><li><a href="global.TestCaseDebugContext.html">TestCaseDebugContext</a></li><li><a href="RowInfo.html">RowInfo</a></li><li><a href="RowLevel.html">RowLevel</a></li><li><a href="RowLevelOrColumn.html">RowLevelOrColumn</a></li><li><a href="selblocks.Logger.html">Logger</a></li><li><a href="Selenium.html">Selenium</a></li><li><a href="SeLiteData.Db.html">Db</a></li><li><a href="SeLiteData.Table.html">Table</a></li><li><a href="SeLiteMisc.Enum.html">Enum</a></li><li><a href="SeLiteSettings.FieldInformation.html">FieldInformation</a></li><li><a href="SeLiteSettings.TestDbKeeper.html">TestDbKeeper</a></li><li><a href="SeLiteSettings.TestDbKeeper.Columns.html">Columns</a></li><li><a href="ValueSource.html">ValueSource</a></li></ul><h3>Namespaces</h3><ul><li><a href="global.html#global">global</a></li><li><a href="selblocks.html">selblocks</a></li><li><a href="selblocks.fn.html">fn</a></li><li><a href="selblocks.InfixExpressionParser.html">InfixExpressionParser</a></li><li><a href="selblocks.xp.html">xp</a></li><li><a href="SeLiteAutoCheck.html">SeLiteAutoCheck</a></li><li><a href="SeLiteData.html">SeLiteData</a></li><li><a href="SeLiteMisc.html">SeLiteMisc</a></li><li><a href="SeLiteSettings.html">SeLiteSettings</a></li></ul><h3>Global</h3><ul><li><a href="global.html#'static'">'static'</a></li><li><a href="global.html#allowMultivaluedNonChoices">allowMultivaluedNonChoices</a></li><li><a href="global.html#applicableColumns">applicableColumns</a></li><li><a href="global.html#array">array</a></li><li><a href="global.html#Array">Array</a></li><li><a href="global.html#bool">bool</a></li><li><a href="global.html#cachedManifests">cachedManifests</a></li><li><a href="global.html#cacheRatio">cacheRatio</a></li><li><a href="global.html#callStack">callStack</a></li><li><a href="global.html#checkField">checkField</a></li><li><a href="global.html#chooseFileOrFolder">chooseFileOrFolder</a></li><li><a href="global.html#chooseJavascriptFile">chooseJavascriptFile</a></li><li><a href="global.html#createTreeChildren">createTreeChildren</a></li><li><a href="global.html#directChildList">directChildList</a></li><li><a href="global.html#directRequisiteIncompatible">directRequisiteIncompatible</a></li><li><a href="global.html#Dotclear">Dotclear</a></li><li><a href="global.html#Drupal">Drupal</a></li><li><a href="global.html#ensureFieldName">ensureFieldName</a></li><li><a href="global.html#expandStoredVars">expandStoredVars</a></li><li><a href="global.html#fieldTreeRow">fieldTreeRow</a></li><li><a href="global.html#format">format</a></li><li><a href="global.html#formatCommands">formatCommands</a></li><li><a href="global.html#FUDforum">FUDforum</a></li><li><a href="global.html#generateFields">generateFields</a></li><li><a href="global.html#generateSets">generateSets</a></li><li><a href="global.html#generateTreeColumns">generateTreeColumns</a></li><li><a href="global.html#global#infoURLtoDownloadURL">infoURLtoDownloadURL</a></li><li><a href="global.html#global#int">int</a></li><li><a href="global.html#global#loadXMLDoc">loadXMLDoc</a></li><li><a href="global.html#global#locateConnectionInfo">locateConnectionInfo</a></li><li><a href="global.html#global#Location">Location</a></li><li><a href="global.html#global#manifestsDownToFolder">manifestsDownToFolder</a></li><li><a href="global.html#global#modules">modules</a></li><li><a href="global.html#global#moduleSetFields">moduleSetFields</a></li><li><a href="global.html#global#name">name</a></li><li><a href="global.html#global#Namespace-like">Namespace-like</a></li><li><a href="global.html#global#newValueRow">newValueRow</a></li><li><a href="global.html#global#NTH_RECORD">NTH_RECORD</a></li><li><a href="global.html#global#Null">Null</a></li><li><a href="global.html#global#Object">Object</a></li><li><a href="global.html#global#Only">Only</a></li><li><a href="global.html#global#parse">parse</a></li><li><a href="global.html#global#parseCommandsAndHeader">parseCommandsAndHeader</a></li><li><a href="global.html#global#phpMyFAQ">phpMyFAQ</a></li><li><a href="global.html#global#PluginDetails">PluginDetails</a></li><li><a href="global.html#global#preProcessEdit">preProcessEdit</a></li><li><a href="global.html#global#propertiesPart">propertiesPart</a></li><li><a href="global.html#global#proxyVerifyFieldsObjectHandler">proxyVerifyFieldsObjectHandler</a></li><li><a href="global.html#global#readFile">readFile</a></li><li><a href="global.html#global#removeCommentsGetLines">removeCommentsGetLines</a></li><li><a href="global.html#global#requisiteDetailsSubset">requisiteDetailsSubset</a></li><li><a href="global.html#global#roles">roles</a></li><li><a href="global.html#global#SeLiteMiscClassForVerifiedScope">SeLiteMiscClassForVerifiedScope</a></li><li><a href="global.html#global#Serendipity">Serendipity</a></li><li><a href="global.html#global#Serving">Serving</a></li><li><a href="global.html#global#setCellText">setCellText</a></li><li><a href="global.html#global#showingPerFolder">showingPerFolder</a></li><li><a href="global.html#global#SQLiteConnectionInfo">SQLiteConnectionInfo</a></li><li><a href="global.html#global#Static">Static</a></li><li><a href="global.html#global#string">string</a></li><li><a href="global.html#global#treeCell">treeCell</a></li><li><a href="global.html#global#treeColumn">treeColumn</a></li><li><a href="global.html#global#treeColumnElements">treeColumnElements</a></li><li><a href="global.html#global#treeRowsOrChildren">treeRowsOrChildren</a></li><li><a href="global.html#global#unnamedTestSuiteFolderChangeHandlers">unnamedTestSuiteFolderChangeHandlers</a></li><li><a href="global.html#global#updateSpecial">updateSpecial</a></li><li><a href="global.html#global#valueCompound">valueCompound</a></li><li><a href="global.html#global#Whether">Whether</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Fri Jun 10 2016 10:48:03 GMT+1000 (AEST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Class: Constructor</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Class: Constructor</h1>
+
+    
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>Constructor</h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+
+    
+
+    <h4 class="name" id="Constructor"><span class="type-signature"></span>new Constructor<span class="signature">(params, object)</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>params</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Object serving as an associative array; optional, in form {
+     table: SeLiteData.Table instance
+     alias: string, alias for this table, used in SQL, optional.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>object</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">prototype Instance of SeLiteData.RecordSetFormula which serves as the prototype for the new object. Optional.
+ Any fields not set in params will be inherited from prototype (if present), as they are at the time of calling this constructor.
+ Any fields set in params will override respective fields in prototype (if any),
+ except for field(s) present in params and set to null - then values will be copied from prototype, (if present).</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="SeLite_db-objects_src_chrome_content_DbObjects.js.html">SeLite/db-objects/src/chrome/content/DbObjects.js</a>, <a href="SeLite_db-objects_src_chrome_content_DbObjects.js.html#line434">line 434</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+    <dt class="tag-todo">To Do:</dt>
+    <dd class="tag-todo">
+        <ul>
+            <li>Check this old documentation - not applicable anymore: object, optional, in form { table-name: columns-alias-info } where each columns-alias-info is of mixed-type:
+            - string column alias prefix (it will be prepended in front of all column names); or
+            - SeLiteData.RecordSetFormula.ALL_FIELDS (all fields listed in the table object will be selected, unaliased); or
+            - an alias map object listing all columns that are to be selected, mapped to string alias, or mapped to true/1 if not aliased; or
+            - an array, listing one or more of the following
+            --- all unaliased columns
+            ---- optional object(s) which is an alias map {string colum name: string alias}; such a map must map to string alias (it must not map to true/1)
+            --- optional SeLiteData.RecordSetFormula.ALL_FIELDS indicating usage of all columns under their names (unaliased), unless any map object(s) map them
+            Each alias must be unique; that will be checked by SeLiteData.RecordSetFormula constructor (--@TODO).
+            The column list must list the primary key of the main table, and it must not be aliased. Their values must exist
+            - i.e. you can't have a join that selects records from join table(s) for which there is no record in the main table.
+            That's because RecordSetHolder.originals{} are indexed by it.
+     columns: Object serving as an associative array {
+     string tableName: mixed, either
+      - SeLiteData.RecordSetFormula.ALL_FIELDS, or
+      - an array of either
+          - string columnName, or
+          - object serving as a map, with exactly one entry { string columnName: string alias}
+        or
+      - an anonymous object {
+             string columnName: string alias; or
+             string columnName: true - to mark that the column should be retrieved - used when you need an alias for other column(s)
+        }
+     }
+     joins: Similar to but not exact as the same field passed to SeLiteData.Storage.getRecords().
+         Array [
+             of objects {
+                    table: table object;
+                    alias: string table alias, optional;
+                    type: string type 'INNER LEFT' etc.; optional
+                    on: string join condition
+                }
+            ]
+     fetchCondition: String SQL condition,
+     fetchMatching
+     parameterNames
+     sort
+     sortDirection
+     indexBy - either a field name (string), or an array of them. If it's a single field name, it will be converted into an array (containing that single field name). Optional; if not set and the table has a single-column primary key then it's set to that key; otherwise there's no indexing.
+     indexUnique
+     process
+     debugQuery
+     debugResult
+     generateInsertKey: boolean, like parameter generateInsertKey of SeLiteData.Db(). Optional; if present, then it overrides table.generateInsertKey (whether it's set here to true or false, regardless of whether table.generateInsertKey is true or false).If not set, then it's copied from prototype.generateInsertKey (if defined), or from this.table.generateInsertKey.
+     onInsert: value to fill in on insert, or function to call to get such a value
+     onUpdate: value to fill in on update, or function to call to get such a value
+ }</li>
+        
+            <li>putCondition, putMatching</li>
+        
+            <li>Consider making some of parameterNames optional. fetchMatching already can contain callback functions, so extend the mechanism
+ to pass values of all actual parameters from user's select() call. Similar for putMatching, if we implement it. Possibly the similar for fetchCondition (and for putCondition, if we implement it).</li>
+        
+            <li>consider applying fetchMatching in other ways than just SQL = comparison. E.g. LIKE, <>, IS NULL, IS NOT NULL. The same for passing optional column filters to SeLiteData.Storage.prototype.getRecords() via its params.parameters field.</li>
+        </ul>
+    </dd>
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    </div>
+
+    
+
+    
+
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Abstract.html">Abstract</a></li><li><a href="CellInfo.html">CellInfo</a></li><li><a href="Column.html">Column</a></li><li><a href="Constructor.html">Constructor</a></li><li><a href="Create.html">Create</a></li><li><a href="FilledIn.html">FilledIn</a></li><li><a href="global.TestCaseDebugContext.html">TestCaseDebugContext</a></li><li><a href="RowInfo.html">RowInfo</a></li><li><a href="RowLevel.html">RowLevel</a></li><li><a href="RowLevelOrColumn.html">RowLevelOrColumn</a></li><li><a href="selblocks.Logger.html">Logger</a></li><li><a href="Selenium.html">Selenium</a></li><li><a href="SeLiteData.Db.html">Db</a></li><li><a href="SeLiteData.Table.html">Table</a></li><li><a href="SeLiteMisc.Enum.html">Enum</a></li><li><a href="SeLiteSettings.FieldInformation.html">FieldInformation</a></li><li><a href="SeLiteSettings.TestDbKeeper.html">TestDbKeeper</a></li><li><a href="SeLiteSettings.TestDbKeeper.Columns.html">Columns</a></li><li><a href="ValueSource.html">ValueSource</a></li></ul><h3>Namespaces</h3><ul><li><a href="global.html#global">global</a></li><li><a href="selblocks.html">selblocks</a></li><li><a href="selblocks.fn.html">fn</a></li><li><a href="selblocks.InfixExpressionParser.html">InfixExpressionParser</a></li><li><a href="selblocks.xp.html">xp</a></li><li><a href="SeLiteAutoCheck.html">SeLiteAutoCheck</a></li><li><a href="SeLiteData.html">SeLiteData</a></li><li><a href="SeLiteMisc.html">SeLiteMisc</a></li><li><a href="SeLiteSettings.html">SeLiteSettings</a></li></ul><h3>Global</h3><ul><li><a href="global.html#'static'">'static'</a></li><li><a href="global.html#allowMultivaluedNonChoices">allowMultivaluedNonChoices</a></li><li><a href="global.html#applicableColumns">applicableColumns</a></li><li><a href="global.html#array">array</a></li><li><a href="global.html#Array">Array</a></li><li><a href="global.html#bool">bool</a></li><li><a href="global.html#cachedManifests">cachedManifests</a></li><li><a href="global.html#cacheRatio">cacheRatio</a></li><li><a href="global.html#callStack">callStack</a></li><li><a href="global.html#checkField">checkField</a></li><li><a href="global.html#chooseFileOrFolder">chooseFileOrFolder</a></li><li><a href="global.html#chooseJavascriptFile">chooseJavascriptFile</a></li><li><a href="global.html#createTreeChildren">createTreeChildren</a></li><li><a href="global.html#directChildList">directChildList</a></li><li><a href="global.html#directRequisiteIncompatible">directRequisiteIncompatible</a></li><li><a href="global.html#Dotclear">Dotclear</a></li><li><a href="global.html#Drupal">Drupal</a></li><li><a href="global.html#ensureFieldName">ensureFieldName</a></li><li><a href="global.html#expandStoredVars">expandStoredVars</a></li><li><a href="global.html#fieldTreeRow">fieldTreeRow</a></li><li><a href="global.html#format">format</a></li><li><a href="global.html#formatCommands">formatCommands</a></li><li><a href="global.html#FUDforum">FUDforum</a></li><li><a href="global.html#generateFields">generateFields</a></li><li><a href="global.html#generateSets">generateSets</a></li><li><a href="global.html#generateTreeColumns">generateTreeColumns</a></li><li><a href="global.html#global#infoURLtoDownloadURL">infoURLtoDownloadURL</a></li><li><a href="global.html#global#int">int</a></li><li><a href="global.html#global#loadXMLDoc">loadXMLDoc</a></li><li><a href="global.html#global#locateConnectionInfo">locateConnectionInfo</a></li><li><a href="global.html#global#Location">Location</a></li><li><a href="global.html#global#manifestsDownToFolder">manifestsDownToFolder</a></li><li><a href="global.html#global#modules">modules</a></li><li><a href="global.html#global#moduleSetFields">moduleSetFields</a></li><li><a href="global.html#global#name">name</a></li><li><a href="global.html#global#Namespace-like">Namespace-like</a></li><li><a href="global.html#global#newValueRow">newValueRow</a></li><li><a href="global.html#global#NTH_RECORD">NTH_RECORD</a></li><li><a href="global.html#global#Null">Null</a></li><li><a href="global.html#global#Object">Object</a></li><li><a href="global.html#global#Only">Only</a></li><li><a href="global.html#global#parse">parse</a></li><li><a href="global.html#global#parseCommandsAndHeader">parseCommandsAndHeader</a></li><li><a href="global.html#global#phpMyFAQ">phpMyFAQ</a></li><li><a href="global.html#global#PluginDetails">PluginDetails</a></li><li><a href="global.html#global#preProcessEdit">preProcessEdit</a></li><li><a href="global.html#global#propertiesPart">propertiesPart</a></li><li><a href="global.html#global#proxyVerifyFieldsObjectHandler">proxyVerifyFieldsObjectHandler</a></li><li><a href="global.html#global#readFile">readFile</a></li><li><a href="global.html#global#removeCommentsGetLines">removeCommentsGetLines</a></li><li><a href="global.html#global#requisiteDetailsSubset">requisiteDetailsSubset</a></li><li><a href="global.html#global#roles">roles</a></li><li><a href="global.html#global#SeLiteMiscClassForVerifiedScope">SeLiteMiscClassForVerifiedScope</a></li><li><a href="global.html#global#Serendipity">Serendipity</a></li><li><a href="global.html#global#Serving">Serving</a></li><li><a href="global.html#global#setCellText">setCellText</a></li><li><a href="global.html#global#showingPerFolder">showingPerFolder</a></li><li><a href="global.html#global#SQLiteConnectionInfo">SQLiteConnectionInfo</a></li><li><a href="global.html#global#Static">Static</a></li><li><a href="global.html#global#string">string</a></li><li><a href="global.html#global#treeCell">treeCell</a></li><li><a href="global.html#global#treeColumn">treeColumn</a></li><li><a href="global.html#global#treeColumnElements">treeColumnElements</a></li><li><a href="global.html#global#treeRowsOrChildren">treeRowsOrChildren</a></li><li><a href="global.html#global#unnamedTestSuiteFolderChangeHandlers">unnamedTestSuiteFolderChangeHandlers</a></li><li><a href="global.html#global#updateSpecial">updateSpecial</a></li><li><a href="global.html#global#valueCompound">valueCompound</a></li><li><a href="global.html#global#Whether">Whether</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Fri Jun 10 2016 10:48:03 GMT+1000 (AEST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

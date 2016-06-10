@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: SeLite/preview/src/chrome/content/extensions/preview-core.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: SeLite/preview/src/chrome/content/extensions/preview-core.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/*  Copyright 2016 Peter Kehl
+    This file is part of SeLite Preview.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with this program.  If not, see &lt;http://www.gnu.org/licenses/>.
+*/
+"use strict";
+
+// Following assignments is purely for JSDoc.
+/** @class */
+Selenium= Selenium;
+
+// Anonymous function to prevent leaking into Selenium global namespace
+( function() {
+    //var console= Components.utils.import("resource://gre/modules/Console.jsm", {}).console;
+    var nsIMIMEService= Components.classes["@mozilla.org/mime;1"].getService(Components.interfaces.nsIMIMEService);
+    var StringView= Components.utils.import("chrome://selite-preview/content/StringView.js", {}).StringView;
+    
+    /** Load a given file asynchronously.
+     *  @param {string} url URL of the file. It must be a full URL (including the scheme/protocol).
+     *  @param {boolean} [binary=false] Whether it's a binary file. If unsure, pass true.
+     *  @return {Promise} A Promise that will resolve to content of the file: either  to a string (if binary is not set/false), or to an ArrayBuffer (if binary is true). On failure or timeout it will be rejected.
+     * */
+    Selenium.prototype.loadFile= function loadFile( url, binary=false ) {
+        // Refuse data: URL. That's because even though XMLHttpRequest supports 'data:' URLs, then its responseXML is null. See https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest
+        if( url.indexOf( 'data:' )===0 ) {
+            throw new Error( "Parameter documentURL must not ba a data: URL: " +url );
+        }
+        return new Promise( (resolve, reject)=> {
+            var request = new XMLHttpRequest();
+            !binary || (request.responseType= 'blob');
+            request.onload= ()=> {
+                if (request.readyState === 4) {
+                    if (request.status === 200) {
+                        if( !binary ) {
+                            resolve( request.responseText );
+                        }
+                        else {
+                            var reader = new FileReader();
+                            reader.addEventListener( "loadend",
+                                ()=> resolve( reader.result )
+                            );
+                            reader.readAsArrayBuffer( request.response );                                         }
+                    }
+                    else {
+                        reject( "Couldn't load " +url+ ". " +request.statusText );
+                    }
+                }
+            };
+            request.onerror= (event)=> {
+                reject( "Couldn't load " +url );
+            };
+            request.ontimeout= (event)=> {
+                reject( "Loading " +url+ " timed out." );
+            };
+
+            request.open("GET", url, true );
+            request.timeout= this.defaultTimeout-50;
+            request.send( null );
+        } );
+    };
+    
+    /** Encode a file as a &lt;code>data:&lt;/code> URI. See https://developer.mozilla.org/en-US/docs/Web/HTTP/data_URIs.
+     *  It also loads content of files referenced by &lt;code>&amp;lt;img src="..."&amp;gt;, &amp;lt;link href="..." with rel="stylesheet" or with as="script" or with type="..."&amp;gt;,  &amp;lt;script src="..."&amp;gt;&lt;/code>. It changes src="..." or href="..." of those elements to use &lt;code>data:&lt;/code> containing the loaded content.
+     *  @see Editor.prototype.openPreview()
+        @param {string} filePathOrURL File path or URL of the HTML/XML preview file/template. It must be a full URL (including the scheme/protocol), or a full path. If it's a file path, you can use either / or \ as directory separators (they will get translated for the current system). To make it portable, specify it as a relative path and pass it appended to result of SeLiteSettings.getTestSuiteFolder(). It must not be a data: URL. It must not contain a #hash/fragment part.
+     *  @param {boolean|undefined|string|Array|RegExp|function} [useURLencoding=udefined] Whether to apply base 64 encoding (human-unreadable) rather than URL encoding (English text is human-readable). Thri-state parameter:
+     *  -If true, then this always uses URL encoding (the result may not work with decodeURIComponent()).
+     *  -If undefined, then it's automatic: URL encoding for text files (whose MIME starts with "text/" and for .xhtml files) and base 64 for the rest.
+     *  -If false, then this always uses base 64 encoding.
+     *  -If a string, an array, a regex: matching MIME prefix for files to URL encode, in addition to the above automatic rule.
+     *  -If a function, then useURLencoding(mimeString) determines whether to use URL encoding, in addition to the above automatic rule.
+     *  @param {function} [contentHandler=undefined] Function(content) => Promise of a string (the handled content). Used for deep/recursive handling. Parameter url is used only for resolving relative URLs for documents that are handled recursively.
+     *  @return {Promise} Promise that resolves to encoded content (and handled, if contentHandler is passed); it rejects on error or on timeout. On success it resolves to string, which is a data: URI for content of given documentURL, including content of images/scripts/stylesheets through data: URIs, too.
+     * */
+    Selenium.prototype.encodeFile= function encodeFile( url, useURLencoding=false, contentHandler=undefined ) {
+        var uri= Components.classes["@mozilla.org/network/io-service;1"].getService(Components.interfaces.nsIIOService).newURI( url, null, null);
+        var mime= nsIMIMEService.getTypeFromURI( uri );
+        var contentIsBinary= !mime.startsWith('text/')/*That covers text/xml*/ &amp;&amp; mime!=='application/xhtml+xml';
+        
+        return this.loadFile( url,  contentIsBinary ).then(
+        unprocessedContent => {
+            
+            var contentHandlerPromise=
+                !contentIsBinary &amp;&amp; contentHandler
+                ? contentHandler( unprocessedContent )
+                : Promise.resolve( unprocessedContent );
+            
+            return contentHandlerPromise.then(
+            processedContent => {
+                return Selenium.encodeContent( processedContent, mime, contentIsBinary, useURLencoding );
+            } );
+        } );
+    };
+    
+    /**
+     * @param {string} filePathOrURL See Selenium.prototype.encodeFile().
+     * @param {boolean|undefined|string|Array|RegExp|function} [useURLencoding=undefined] See Selenium.prototype.encodeFile().
+     * @param {string|array|RegExp|function|undefined} fetchFilter Filter that determines for a given URL whether to fetch it or not.
+     * - String application webroot. Any resources under it, even if referenced through full URLs, will be fetched.
+     * - Array of webroots. Any resources under them will be fetched.
+     * - RegExp matching any URLs to fetch.
+     * - Function(url) that returns whether to fetch a URL.
+     * - undefined to fetch any URLs on the same server (or under same top folder/Windows volume).
+     * @param {function} [handler] Function (fetchFilter, useURLencoding, contentURL, content) => Promise.
+     * @return {Promise} Promise of a string content.
+     * */
+    Selenium.prototype.encodeFileWithHandler= function encodeFileWithHandler( filePathOrURL, useURLencoding=undefined, fetchFilter=undefined, handler=undefined ) {
+        var url= Selenium.urlFor( filePathOrURL, true ); // if a filepath, this translates it to a URL
+        
+        return this.encodeFile( url, useURLencoding,
+            handler
+            ? handler.bind(undefined, fetchFilter, useURLencoding, url)
+            : undefined
+        );
+    };
+    
+    Selenium.prototype.encodeFileRecursively= function encodeFileRecursively( filePathOrURL, useURLencoding=undefined, fetchFilter=undefined ) {
+        return this.encodeFileWithHandler( filePathOrURL, useURLencoding, fetchFilter, Selenium.prototype.encodeFileRecursiveHandler.bind(this) );
+    };
+    
+    /*var indentIndex= 0;
+    function indent( indentation, str ) { return str.replace( /\n/g, "\n" +indentation+(++indentIndex)+indentation ); }*/
+    // Don't match url() case insensitively, because URL(...) is a standard class in Javascript files
+    var handledLink= /(src=|href=)['"]([^'"]+)['"]|url\( *['"]?([^'"]+)['"] *\)/g;
+    var urlRoot= /^((?:file:\/\/\/|[a-z]:\/\/)[^/]+)/;
+    
+    /** @param {string|array|RegExp|function|undefined} filter See Selenium.prototype.encodeFileRecursively().
+     * */
+    Selenium.prototype.encodeFileRecursiveHandler= function encodeFileRecursiveHandler( filter, useURLencoding, contentURL, content ) {
+        if( filter===undefined ) {
+            var contentRootMatch= urlRoot.exec(contentURL);
+            if( contentRootMatch ) {
+                filter= contentRootMatch[0];
+            }
+            else {
+                return Promise.reject( "There was no filter, and given contentURL seems invalid: " +contentURL );
+            }
+        }
+        if( typeof filter==='string' ) {
+            filter= [filter];
+        }
+        if( Array.isArray(filter) ) {
+            filter= new RegExp( '^(' +filter.join('|')+ ')' );
+        }
+        SeLiteMisc.ensureInstance( filter, [RegExp, Function], 'filter' );
+                
+        var result= Promise.resolve('');
+        var lastMatchLastIndex= 0;
+        var match;
+        while( ( match=handledLink.exec(content) )!==null ) {
+            // The following anonymous function keeps the match details before we fire up successive handling, because then handledLink and match will be updated.
+            ( ()=>{
+                var wholeMatch= match[0];
+                var sincePreviousMatch= content.substring( lastMatchLastIndex, match.index );
+
+                var url= match[2] || match[3];
+
+                var matchedSrcOrHref= match[1]!==undefined;
+                // Always return quotes, replacing any previous apostrophes, for these URLs. That's because URL-encoded text may contain apostrophes, but no quotes.
+                var beforeUrl= matchedSrcOrHref
+                    ? match[1]+ '"'
+                    : 'url("';
+                var afterUrl= matchedSrcOrHref
+                    ? '"'
+                    : '")';
+
+                result= result.then(
+                    previous => {
+                        //Convert relative URL to absolute (based on the document being currently processed). If url is absolute, the following leaves it as it was.
+                        var convertedURL= new URL( url, contentURL ).href; // Based on https://developer.mozilla.org/en-US/docs/Web/API/URL/URL
+                        
+                        // The following automatically excludes URLs with data: or javascript: scheme.
+                        var shouldFetch= SeLiteMisc.isInstance(filter, RegExp )
+                            ? filter.test( convertedURL )
+                            : filter( convertedURL );// filter is a function
+                        if( !shouldFetch ) {
+                            return previous+ sincePreviousMatch+ wholeMatch;
+                        }
+                        
+                        var contentHandler= convertedURL.endsWith('.css')
+                            ? Selenium.prototype.encodeFileRecursiveHandler.bind(this) // recursive - to fetch any images referenced from this CSS file
+                            : undefined; // this file is a leaf, no deeper recursion
+                        
+                        return this.encodeFileWithHandler( convertedURL, useURLencoding, filter, contentHandler ).then(
+                            processed => 
+                                previous+ sincePreviousMatch+ beforeUrl+ processed+ afterUrl
+                        );
+                    }
+                );
+            } )();
+            lastMatchLastIndex= handledLink.lastIndex;
+        }
+        result= result.then(
+            (previous)=>
+                previous+ content.substring(lastMatchLastIndex)
+        );
+        return result;
+    };
+    
+    // For Uint8-backed stringview only
+    var stringViewToUrlEncode= function stringViewToUrlEncode( stringView ) {
+        var result= '';
+        for( var i=0; i&lt;stringView.bufferView.length; i++ ) {
+            // Do one by one, rather than the whole string? TODO: try the whole string collected from ASCII each char.
+            //result+= encodeURIComponent( String.fromCharCode(stringView.bufferView[i]) );
+            
+            var hexa= ( stringView.bufferView[i] ).toString(16);
+            result+= '%'+ (hexa.length&lt;2 ? '0' : '')+ hexa;
+            
+            //result+= String.fromCharCode(stringView.bufferView[i]);
+        }
+        return result;
+        //return encodeURIComponent(result);
+    };
+    
+    /**
+     * @param {(string|ArrayBuffer)} content
+    @return {Promise} Promise that resolved to encoded content; it rejects on error or on timeout.
+    */
+    Selenium.encodeContent= function encodeContent( content, mime, contentIsBinary=false, useURLencoding=undefined ) {
+        (typeof content==="object") === SeLiteMisc.isInstance( content, ArrayBuffer ) || SeLiteMisc.fail( "Parameter content must be a primitive string, or an ArrayBuffer.");
+        (typeof content==="object") === contentIsBinary || SeLiteMisc.fail( "Parameter content was " +typeof content+ ", but parameter contentIsBinary was " +contentIsBinary );
+
+            //@TODO var body= doc.getElementsByTagNameNS( "http://www.w3.org/1999/xhtml", 'body')[0]; // this works even if the document's MIME is text/html rather than text/xml
+        var doURLencoding;
+        if( typeof useURLencoding==='boolean' ) {
+            doURLencoding= useURLencoding;
+        }
+        else {
+            if( typeof useURLencoding==='string' ) {
+                useURLencoding= [useURLencoding];
+            }
+            if( Array.isArray(useURLencoding) ) {
+                doURLencoding= false;
+                for( var prefix of doURLencoding ) {
+                    if( mime.startsWith(prefix) ) {
+                        doURLencoding= true;
+                        break;
+                    }
+                }
+            }
+            else
+            if( typeof useURLencoding==='function' ) {
+                doURLencoding= useURLencoding( mime );
+            }
+            else {
+                SeLiteMisc.ensureInstance( useURLencoding, RegExp, "useURLencoding" );
+                doURLencoding= useURLencoding.test( mime );
+            }
+        }
+        
+        var encoded= contentIsBinary
+            ? (doURLencoding
+                ? stringViewToUrlEncode( new StringView( content, 'ASCII') )
+                : new StringView( content, 'ASCII').toBase64( true )
+              )
+            : (doURLencoding
+                ? encodeURIComponent(content)
+                : btoa(content)//btoaPure(content) // here must be the problem
+              );
+        return 'data:' +mime+
+            (doURLencoding
+                ? ''
+                : ';base64'
+            ) + ',' + encoded;
+    };
+}) ();</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Abstract.html">Abstract</a></li><li><a href="CellInfo.html">CellInfo</a></li><li><a href="Column.html">Column</a></li><li><a href="Constructor.html">Constructor</a></li><li><a href="Create.html">Create</a></li><li><a href="FilledIn.html">FilledIn</a></li><li><a href="global.TestCaseDebugContext.html">TestCaseDebugContext</a></li><li><a href="RowInfo.html">RowInfo</a></li><li><a href="RowLevel.html">RowLevel</a></li><li><a href="RowLevelOrColumn.html">RowLevelOrColumn</a></li><li><a href="selblocks.Logger.html">Logger</a></li><li><a href="Selenium.html">Selenium</a></li><li><a href="SeLiteData.Db.html">Db</a></li><li><a href="SeLiteData.Table.html">Table</a></li><li><a href="SeLiteMisc.Enum.html">Enum</a></li><li><a href="SeLiteSettings.FieldInformation.html">FieldInformation</a></li><li><a href="SeLiteSettings.TestDbKeeper.html">TestDbKeeper</a></li><li><a href="SeLiteSettings.TestDbKeeper.Columns.html">Columns</a></li><li><a href="ValueSource.html">ValueSource</a></li></ul><h3>Namespaces</h3><ul><li><a href="global.html#global">global</a></li><li><a href="selblocks.html">selblocks</a></li><li><a href="selblocks.fn.html">fn</a></li><li><a href="selblocks.InfixExpressionParser.html">InfixExpressionParser</a></li><li><a href="selblocks.xp.html">xp</a></li><li><a href="SeLiteAutoCheck.html">SeLiteAutoCheck</a></li><li><a href="SeLiteData.html">SeLiteData</a></li><li><a href="SeLiteMisc.html">SeLiteMisc</a></li><li><a href="SeLiteSettings.html">SeLiteSettings</a></li></ul><h3>Global</h3><ul><li><a href="global.html#'static'">'static'</a></li><li><a href="global.html#allowMultivaluedNonChoices">allowMultivaluedNonChoices</a></li><li><a href="global.html#applicableColumns">applicableColumns</a></li><li><a href="global.html#array">array</a></li><li><a href="global.html#Array">Array</a></li><li><a href="global.html#bool">bool</a></li><li><a href="global.html#cachedManifests">cachedManifests</a></li><li><a href="global.html#cacheRatio">cacheRatio</a></li><li><a href="global.html#callStack">callStack</a></li><li><a href="global.html#checkField">checkField</a></li><li><a href="global.html#chooseFileOrFolder">chooseFileOrFolder</a></li><li><a href="global.html#chooseJavascriptFile">chooseJavascriptFile</a></li><li><a href="global.html#createTreeChildren">createTreeChildren</a></li><li><a href="global.html#directChildList">directChildList</a></li><li><a href="global.html#directRequisiteIncompatible">directRequisiteIncompatible</a></li><li><a href="global.html#Dotclear">Dotclear</a></li><li><a href="global.html#Drupal">Drupal</a></li><li><a href="global.html#ensureFieldName">ensureFieldName</a></li><li><a href="global.html#expandStoredVars">expandStoredVars</a></li><li><a href="global.html#fieldTreeRow">fieldTreeRow</a></li><li><a href="global.html#format">format</a></li><li><a href="global.html#formatCommands">formatCommands</a></li><li><a href="global.html#FUDforum">FUDforum</a></li><li><a href="global.html#generateFields">generateFields</a></li><li><a href="global.html#generateSets">generateSets</a></li><li><a href="global.html#generateTreeColumns">generateTreeColumns</a></li><li><a href="global.html#global#infoURLtoDownloadURL">infoURLtoDownloadURL</a></li><li><a href="global.html#global#int">int</a></li><li><a href="global.html#global#loadXMLDoc">loadXMLDoc</a></li><li><a href="global.html#global#locateConnectionInfo">locateConnectionInfo</a></li><li><a href="global.html#global#Location">Location</a></li><li><a href="global.html#global#manifestsDownToFolder">manifestsDownToFolder</a></li><li><a href="global.html#global#modules">modules</a></li><li><a href="global.html#global#moduleSetFields">moduleSetFields</a></li><li><a href="global.html#global#name">name</a></li><li><a href="global.html#global#Namespace-like">Namespace-like</a></li><li><a href="global.html#global#newValueRow">newValueRow</a></li><li><a href="global.html#global#NTH_RECORD">NTH_RECORD</a></li><li><a href="global.html#global#Null">Null</a></li><li><a href="global.html#global#Object">Object</a></li><li><a href="global.html#global#Only">Only</a></li><li><a href="global.html#global#parse">parse</a></li><li><a href="global.html#global#parseCommandsAndHeader">parseCommandsAndHeader</a></li><li><a href="global.html#global#phpMyFAQ">phpMyFAQ</a></li><li><a href="global.html#global#PluginDetails">PluginDetails</a></li><li><a href="global.html#global#preProcessEdit">preProcessEdit</a></li><li><a href="global.html#global#propertiesPart">propertiesPart</a></li><li><a href="global.html#global#proxyVerifyFieldsObjectHandler">proxyVerifyFieldsObjectHandler</a></li><li><a href="global.html#global#readFile">readFile</a></li><li><a href="global.html#global#removeCommentsGetLines">removeCommentsGetLines</a></li><li><a href="global.html#global#requisiteDetailsSubset">requisiteDetailsSubset</a></li><li><a href="global.html#global#roles">roles</a></li><li><a href="global.html#global#SeLiteMiscClassForVerifiedScope">SeLiteMiscClassForVerifiedScope</a></li><li><a href="global.html#global#Serendipity">Serendipity</a></li><li><a href="global.html#global#Serving">Serving</a></li><li><a href="global.html#global#setCellText">setCellText</a></li><li><a href="global.html#global#showingPerFolder">showingPerFolder</a></li><li><a href="global.html#global#SQLiteConnectionInfo">SQLiteConnectionInfo</a></li><li><a href="global.html#global#Static">Static</a></li><li><a href="global.html#global#string">string</a></li><li><a href="global.html#global#treeCell">treeCell</a></li><li><a href="global.html#global#treeColumn">treeColumn</a></li><li><a href="global.html#global#treeColumnElements">treeColumnElements</a></li><li><a href="global.html#global#treeRowsOrChildren">treeRowsOrChildren</a></li><li><a href="global.html#global#unnamedTestSuiteFolderChangeHandlers">unnamedTestSuiteFolderChangeHandlers</a></li><li><a href="global.html#global#updateSpecial">updateSpecial</a></li><li><a href="global.html#global#valueCompound">valueCompound</a></li><li><a href="global.html#global#Whether">Whether</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Fri Jun 10 2016 10:48:03 GMT+1000 (AEST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

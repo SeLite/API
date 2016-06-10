@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: SelBlocksGlobal/sel-blocks-fx_xpi/chrome/content/extensions/selenium-executionloop-handleAsTryBlock.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: SelBlocksGlobal/sel-blocks-fx_xpi/chrome/content/extensions/selenium-executionloop-handleAsTryBlock.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/* Copyright 2011 Chris Noe
+ * Copyright 2015, 2016 Peter Kehl
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 1.1. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/1.1/.
+ */
+"use strict";
+
+// Following assignments is purely for JSDoc.
+/** @namespace */
+selblocks= selblocks;
+
+  // Based on a part of $$.handleAsTryBlock from SelBlocks
+  selblocks.testLoopResumeHandleFailedResult= function testLoopResumeHandleFailedResult() {
+      // Selenium IDE doesn't stop running on verifications. Therefore verifications shouldn't trigger 'catch' clause. Hence we do suppress making the test case marked as failed, and we log at info level only.
+      LOG.info( "try..catch..endTry suppressed verification failure from command: " + this.currentCommand.command + " | " + this.currentCommand.target + " | " + this.currentCommand.value + " |");
+      this.result.failed= false;
+      this.result.passed= true;
+  };
+  
+  // Based on a part of $$.handleAsTryBlock from SelBlocks
+  selblocks.testLoopResumeHandleError= function testLoopResumeHandleError( e ) {
+      LOG.debug( 'testLoopResumeHandleError');
+      var originalMessage= e.message; // Selenium IDE generates 'false' message for failed assertions, and those then would only match catch | 'false' |. Following makes them catchable by the actual assertion message.
+      if( e.message==='false' ) {
+          e.message= this.currentCommand.command + " | " + this.currentCommand.target + " | " + this.currentCommand.value + " |";
+      }
+      if( /*isManaged*/selblocks.fn.getInterceptTop() &amp;&amp; selblocks.fn.getInterceptTop().attrs.manageError(e) ) {
+        var message= originalMessage!=='false'
+            ? '. The message: ' +originalMessage
+            : '';
+        LOG.debug( 'try..catch..endTry caught an exception or assert failure from command: ' + this.currentCommand.command + " | " + this.currentCommand.target + " | " + this.currentCommand.value + " |" +message );
+        this.continueTest();
+      }
+      else if( selenium.callStack().top().invokedFromJavascript ) {
+        LOG.debug( 'testLoopResumeHandleError: invokedFromJavascript, popping callStack');
+        !selenium.callStack().top().frameFromAsync || !selenium.callStack().top().onFailure || window.setTimeout( ()=>selenium.callStack().top().onFailure( e ), 0 );
+        LOG.debug( 'testLoopResumeHandleError: invokedFromJavascript, after calling onFailure (if any and if applicable)');
+        selenium.callStack().pop();
+        this.continueTest();
+      }
+      else {
+        this._handleCommandError(e); // causes command to be marked in red
+        this.testComplete();
+      }
+  };
+  
+  // Classic SelBlocks had handleAsTryBlock() here, but SelBlocks Global uses testLoopResumeHandleFailedResult() and testLoopResumeHandleError() instead. See editor.testLoopResume() in SeLite TestCase Debug Context.
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Abstract.html">Abstract</a></li><li><a href="CellInfo.html">CellInfo</a></li><li><a href="Column.html">Column</a></li><li><a href="Constructor.html">Constructor</a></li><li><a href="Create.html">Create</a></li><li><a href="FilledIn.html">FilledIn</a></li><li><a href="global.TestCaseDebugContext.html">TestCaseDebugContext</a></li><li><a href="RowInfo.html">RowInfo</a></li><li><a href="RowLevel.html">RowLevel</a></li><li><a href="RowLevelOrColumn.html">RowLevelOrColumn</a></li><li><a href="selblocks.Logger.html">Logger</a></li><li><a href="Selenium.html">Selenium</a></li><li><a href="SeLiteData.Db.html">Db</a></li><li><a href="SeLiteData.Table.html">Table</a></li><li><a href="SeLiteMisc.Enum.html">Enum</a></li><li><a href="SeLiteSettings.FieldInformation.html">FieldInformation</a></li><li><a href="SeLiteSettings.TestDbKeeper.html">TestDbKeeper</a></li><li><a href="SeLiteSettings.TestDbKeeper.Columns.html">Columns</a></li><li><a href="ValueSource.html">ValueSource</a></li></ul><h3>Namespaces</h3><ul><li><a href="global.html#global">global</a></li><li><a href="selblocks.html">selblocks</a></li><li><a href="selblocks.fn.html">fn</a></li><li><a href="selblocks.InfixExpressionParser.html">InfixExpressionParser</a></li><li><a href="selblocks.xp.html">xp</a></li><li><a href="SeLiteAutoCheck.html">SeLiteAutoCheck</a></li><li><a href="SeLiteData.html">SeLiteData</a></li><li><a href="SeLiteMisc.html">SeLiteMisc</a></li><li><a href="SeLiteSettings.html">SeLiteSettings</a></li></ul><h3>Global</h3><ul><li><a href="global.html#'static'">'static'</a></li><li><a href="global.html#allowMultivaluedNonChoices">allowMultivaluedNonChoices</a></li><li><a href="global.html#applicableColumns">applicableColumns</a></li><li><a href="global.html#array">array</a></li><li><a href="global.html#Array">Array</a></li><li><a href="global.html#bool">bool</a></li><li><a href="global.html#cachedManifests">cachedManifests</a></li><li><a href="global.html#cacheRatio">cacheRatio</a></li><li><a href="global.html#callStack">callStack</a></li><li><a href="global.html#checkField">checkField</a></li><li><a href="global.html#chooseFileOrFolder">chooseFileOrFolder</a></li><li><a href="global.html#chooseJavascriptFile">chooseJavascriptFile</a></li><li><a href="global.html#createTreeChildren">createTreeChildren</a></li><li><a href="global.html#directChildList">directChildList</a></li><li><a href="global.html#directRequisiteIncompatible">directRequisiteIncompatible</a></li><li><a href="global.html#Dotclear">Dotclear</a></li><li><a href="global.html#Drupal">Drupal</a></li><li><a href="global.html#ensureFieldName">ensureFieldName</a></li><li><a href="global.html#expandStoredVars">expandStoredVars</a></li><li><a href="global.html#fieldTreeRow">fieldTreeRow</a></li><li><a href="global.html#format">format</a></li><li><a href="global.html#formatCommands">formatCommands</a></li><li><a href="global.html#FUDforum">FUDforum</a></li><li><a href="global.html#generateFields">generateFields</a></li><li><a href="global.html#generateSets">generateSets</a></li><li><a href="global.html#generateTreeColumns">generateTreeColumns</a></li><li><a href="global.html#global#infoURLtoDownloadURL">infoURLtoDownloadURL</a></li><li><a href="global.html#global#int">int</a></li><li><a href="global.html#global#loadXMLDoc">loadXMLDoc</a></li><li><a href="global.html#global#locateConnectionInfo">locateConnectionInfo</a></li><li><a href="global.html#global#Location">Location</a></li><li><a href="global.html#global#manifestsDownToFolder">manifestsDownToFolder</a></li><li><a href="global.html#global#modules">modules</a></li><li><a href="global.html#global#moduleSetFields">moduleSetFields</a></li><li><a href="global.html#global#name">name</a></li><li><a href="global.html#global#Namespace-like">Namespace-like</a></li><li><a href="global.html#global#newValueRow">newValueRow</a></li><li><a href="global.html#global#NTH_RECORD">NTH_RECORD</a></li><li><a href="global.html#global#Null">Null</a></li><li><a href="global.html#global#Object">Object</a></li><li><a href="global.html#global#Only">Only</a></li><li><a href="global.html#global#parse">parse</a></li><li><a href="global.html#global#parseCommandsAndHeader">parseCommandsAndHeader</a></li><li><a href="global.html#global#phpMyFAQ">phpMyFAQ</a></li><li><a href="global.html#global#PluginDetails">PluginDetails</a></li><li><a href="global.html#global#preProcessEdit">preProcessEdit</a></li><li><a href="global.html#global#propertiesPart">propertiesPart</a></li><li><a href="global.html#global#proxyVerifyFieldsObjectHandler">proxyVerifyFieldsObjectHandler</a></li><li><a href="global.html#global#readFile">readFile</a></li><li><a href="global.html#global#removeCommentsGetLines">removeCommentsGetLines</a></li><li><a href="global.html#global#requisiteDetailsSubset">requisiteDetailsSubset</a></li><li><a href="global.html#global#roles">roles</a></li><li><a href="global.html#global#SeLiteMiscClassForVerifiedScope">SeLiteMiscClassForVerifiedScope</a></li><li><a href="global.html#global#Serendipity">Serendipity</a></li><li><a href="global.html#global#Serving">Serving</a></li><li><a href="global.html#global#setCellText">setCellText</a></li><li><a href="global.html#global#showingPerFolder">showingPerFolder</a></li><li><a href="global.html#global#SQLiteConnectionInfo">SQLiteConnectionInfo</a></li><li><a href="global.html#global#Static">Static</a></li><li><a href="global.html#global#string">string</a></li><li><a href="global.html#global#treeCell">treeCell</a></li><li><a href="global.html#global#treeColumn">treeColumn</a></li><li><a href="global.html#global#treeColumnElements">treeColumnElements</a></li><li><a href="global.html#global#treeRowsOrChildren">treeRowsOrChildren</a></li><li><a href="global.html#global#unnamedTestSuiteFolderChangeHandlers">unnamedTestSuiteFolderChangeHandlers</a></li><li><a href="global.html#global#updateSpecial">updateSpecial</a></li><li><a href="global.html#global#valueCompound">valueCompound</a></li><li><a href="global.html#global#Whether">Whether</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Fri Jun 10 2016 10:48:03 GMT+1000 (AEST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

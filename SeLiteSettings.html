@@ -1,0 +1,2573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Namespace: SeLiteSettings</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Namespace: SeLiteSettings</h1>
+
+    
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>SeLiteSettings</h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+
+        
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html">SeLite/settings/src/chrome/content/SeLiteSettings.js</a>, <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html#line41">line 41</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+        
+    
+    </div>
+
+    
+
+    
+
+    
+        <h3 class="subsection-title">Classes</h3>
+
+        <dl>
+            <dt><a href="SeLiteSettings.FieldInformation.html">FieldInformation</a></dt>
+            <dd></dd>
+        
+            <dt><a href="SeLiteSettings.TestDbKeeper.html">TestDbKeeper</a></dt>
+            <dd></dd>
+        </dl>
+    
+
+     
+
+    
+
+    
+        <h3 class="subsection-title">Members</h3>
+
+        
+            
+<h4 class="name" id=".commonSettings"><span class="type-signature">(static) </span>commonSettings<span class="type-signature"> :<a href="SeLiteSettings.Module.html">SeLiteSettings.Module</a></span></h4>
+
+
+
+
+<div class="description">
+    This will be the module instance for extensions.selite-settings.common, once its definition is loaded.
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type"><a href="SeLiteSettings.Module.html">SeLiteSettings.Module</a></span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html">SeLite/settings/src/chrome/content/SeLiteSettings.js</a>, <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html#line2030">line 2030</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id=".NULL"><span class="type-signature">(static) </span>NULL<span class="type-signature"></span></h4>
+
+
+
+
+<div class="description">
+    It indicates that a single-valued field has value of null. Used in both preferences and values manifests.
+</div>
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html">SeLite/settings/src/chrome/content/SeLiteSettings.js</a>, <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html#line135">line 135</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id=".reservedNames"><span class="type-signature">(static) </span>reservedNames<span class="type-signature"></span></h4>
+
+
+
+
+<div class="description">
+    An array of strings that are reserved names. For internal use only.
+</div>
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html">SeLite/settings/src/chrome/content/SeLiteSettings.js</a>, <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html#line149">line 149</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id=".VALUE_PRESENT"><span class="type-signature">(static) </span>VALUE_PRESENT<span class="type-signature"> :String</span></h4>
+
+
+
+
+<div class="description">
+    It indicates that a choice (single or multi-valued) or a multi-valued field is present in a set, even if it's unselected or an empty array;
+ then it's stored as a preference with the key being 'moduleName.setName.fieldName'
+ without a trailing dot. Used both in preferences and in values manifest files.
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">String</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html">SeLite/settings/src/chrome/content/SeLiteSettings.js</a>, <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html#line132">line 132</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+    
+
+    
+        <h3 class="subsection-title">Methods</h3>
+
+        
+            
+
+    
+
+    <h4 class="name" id=".addClosingIdeHandler"><span class="type-signature">(static) </span>addClosingIdeHandler<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    Register a handler, that is invoked when Selenium IDE is being closed down.
+ This can only be called from Javascript components - loaded through Components.utils.import() -
+ and directly from Selenium Core extensions, because Core extensions get re-loaded on successive restarts
+ of Se IDE (during the same run of Firefox).
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html">SeLite/settings/src/chrome/content/SeLiteSettings.js</a>, <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html#line80">line 80</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".addTestSuiteFolderChangeHandler"><span class="type-signature">(static) </span>addTestSuiteFolderChangeHandler<span class="signature">(handler, handlerName)</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    Add a handler, that will be called whenever the current test suite folder is changed in Se IDE.
+ It won't be called when Se IDE is closed. When you invoke SeLiteSettings.addTestSuiteFolderChangeHandler(handler)
+ and Se IDE already has a test suite from a known folder, this won't invoke the handler on that known folder.
+ The handler will only be called on any subsequent changes. That should be OK, since this is intended for Core extensions,
+ which are loaded at Se IDE start (before user opens a test suite). Se IDE 2.4.0 starts with the last opened test suite,
+ which is fine - by that time the handlers are in place.
+ <br/>The order of calling handlers is not guaranteed.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>handler</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Function, with 1 parameter, which will be a string folder (or undefined, if the suite is unsaved and temporary).</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>handlerName</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">String; Required if you call this from a Core extension,
+    because those get re-loaded if you re-start Se IDE (without restarting Firefox).
+    Optional if you call this from a Javascript component - loaded through Components.utils.import()
+    - because those won't get re-loaded if you restart Se IDE. If there already was a handler registered with the same handlerName,
+ this replaces the previously registered function with the one given now.</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html">SeLite/settings/src/chrome/content/SeLiteSettings.js</a>, <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html#line62">line 62</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".applyTestSuiteFolderChangeHandlers"><span class="type-signature">(static) </span>applyTestSuiteFolderChangeHandlers<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html">SeLite/settings/src/chrome/content/SeLiteSettings.js</a>, <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html#line1526">line 1526</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".appPath"><span class="type-signature">(static) </span>appPath<span class="signature">(webURL<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {<a href="global.html#global#string">string</a>}</span></h4>
+
+    
+
+
+
+<div class="description">
+    Get application webroot-relative path out of given full URL. Use this instead of SeLiteMisc.selenium.browserbot.getCurrentWindow().location.pathname, which may be under a sub(sub...)folder of site webroot.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>webURL</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#global#string">string</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Full URL. Optional - it defaults to current URL.</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html">SeLite/settings/src/chrome/content/SeLiteSettings.js</a>, <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html#line2072">line 2072</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    URI, in an absolute form (starting with /), relative to application's webroot as per SeLiteSettings.webRoot().
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="global.html#global#string">string</a></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".changedDefaultSet"><span class="type-signature">(static) </span>changedDefaultSet<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html">SeLite/settings/src/chrome/content/SeLiteSettings.js</a>, <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html#line1520">line 1520</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".Field"><span class="type-signature">(static) </span>Field<span class="signature">(string, bool, defaultKey, allowNull<span class="signature-attributes">opt</span>, description<span class="signature-attributes">opt</span>, customValidate)</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>string</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">name Name of the field</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>bool</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">multivalued Whether the field is multivalued; false by default</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>defaultKey</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">mixed Default key. It is the default value(s) for fields other than SeLiteSettings.Field.Choice. For SeLiteSettings.Field.Choice it is the default key(s).
+ Optional. Leave it undefined if you don't want a default key
+ (then it won't be set and it will be inherited, if any). It can be null only for single-valued fields, then the default key is null.
+ Otherwise, if the fiels is single valued, the default key should fit the particular type.
+ If multivalued is true, it must be an array (potentially empty) or undefined; it can't be null.
+ For multivalued fields, this can be an empty array, or an array of keys (i.e. stored values, rather than labels to display, which may not be the same for SeLiteSettings.Field.Choice).
+ If a non-null and not undefined, then the value (or values) will be each checked by validateKey(value).
+ <br/>defaultKey has effect only if no applicable set or 'values' manifest has a value for the field, and only if field's module has associatesWithFolders==true. That is done through getFieldsDownToFolder() and getDownToFolder().</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>allowNull</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#bool">bool</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    false
+                
+                </td>
+            
+
+            <td class="description last">Whether this field allows null value; only applicable for fields other than multivalued choice.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>description</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#global#string">string</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">Human-friendly description. It will show up as a tooltip in GUI.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>customValidate</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">Function to perform custom validation. It takes
+ - 1 parameter: 'key' (same as the value) for fields other than SeLiteSettings.Field.Choice
+ - 2 parameters: 'key' and 'value' for SeLiteSettings.Field.Choice and its subclasses
+ It returns boolean - true on success, false on failure. Optional.</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html">SeLite/settings/src/chrome/content/SeLiteSettings.js</a>, <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html#line218">line 218</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".getField"><span class="type-signature">(static) </span>getField<span class="signature">(fullNameOrField)</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>fullNameOrField</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#global#string">string</a></span>
+|
+
+<span class="param-type"><a href="SeLiteSettings.html#.Field">SeLiteSettings.Field</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">String, in form moduleName+fieldName, excluding any set; or a Field instance.</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html">SeLite/settings/src/chrome/content/SeLiteSettings.js</a>, <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html#line187">line 187</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    SeLiteSettings.Field instance if present and if fullNameOrField is a string; fullNameOrField if it is a Field. It fails otherwise.
+</div>
+
+
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".getTestSuiteFolder"><span class="type-signature">(static) </span>getTestSuiteFolder<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html">SeLite/settings/src/chrome/content/SeLiteSettings.js</a>, <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html#line1506">line 1506</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    string Full path of the current Se IDE test suite folder. Or undefined - see SeLiteSettings.testSuiteFolder.
+</div>
+
+
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".loadFromJavascript"><span class="type-signature">(static) </span>loadFromJavascript<span class="signature">(moduleNameFileUrl, moduleFileOrUrl<span class="signature-attributes">opt</span>, forceReload)</span><span class="type-signature"> &rarr; {<a href="SeLiteSettings.Module.html">SeLiteSettings.Module</a>}</span></h4>
+
+    
+
+
+
+<div class="description">
+    Load & register the module from its Javascript file, if stored in preferences.
+ The file will be cached - any changes will have affect only once you reload Firefox.
+ If called subsequently, it returns an already loaded instance (unless forceReload is true).
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>moduleNameFileUrl</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">string Either
+ - module name, that is name of the preference path/prefix up to the module (including the module name), excluding the trailing dot; or</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>moduleFileOrUrl</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#global#string">string</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Either
+ - file path + name of the module definition file; or
+ - URL (either chrome:, resource: or file:) to the module definition file
+ Optional; even if it's specified, it's used only if the module has not been registered yet (and then it's required).
+ Standard client code should only pass it when installing a module. Clients that expect a module to be installed
+ shouldn't pass moduleFileOrUrl.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>forceReload</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">bool Whether reload the module and overwrite the already cached object,
+ rather than return a cached definition, even if it has been loaded already. False by default (i.e. by default it returns
+ the cached object, if present). It re-adds any fields previously added by addField() - but it doesn't (and it can't) reload source of those added fields.</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html">SeLite/settings/src/chrome/content/SeLiteSettings.js</a>, <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html#line1907">line 1907</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+<h5>Throws:</h5>
+
+        
+
+    <div class="param-desc">
+    
+        an error if no such preference branch, or preferences don't contain javascript file, or the javascript file doesn't exist.
+    
+    </div>
+
+
+    
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    instance
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="SeLiteSettings.Module.html">SeLiteSettings.Module</a></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".roleToUser"><span class="type-signature">(static) </span>roleToUser<span class="signature">(userNameOrRoleWithPrefix)</span><span class="type-signature"> &rarr; {<a href="global.html#global#string">string</a>}</span></h4>
+
+    
+
+
+
+<div class="description">
+    Convert a given symbolic role name (prefixed with '&') to username, or return a given username unchanged.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>userNameOrRoleWithPrefix</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#global#string">string</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Either a symbolic role name, starting with '&', or a username.</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html">SeLite/settings/src/chrome/content/SeLiteSettings.js</a>, <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html#line2036">line 2036</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Username mapped to userNameOrRoleWithPrefix (after removing '&' prefix) through extensions.selite.common.roles field. If userNameOrRoleWithPrefix doesn't start with '&', this returns it unchanged.
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="global.html#global#string">string</a></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".setModuleForReloadButtons"><span class="type-signature">(static) </span>setModuleForReloadButtons<span class="signature">(moduleOrName)</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    Associate a settings module to be used by GUI reload/snapshot buttons.
+ Call this from your framework. Do not call it from your settings module definition, otherwise if you load other such definitions (e.g. through API or by opening chrome://selite-settings/content/tree.xul), then the last call to this function would apply.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>moduleOrName</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="SeLiteSettings.Module.html">SeLiteSettings.Module</a></span>
+|
+
+<span class="param-type"><a href="global.html#global#string">string</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Module, or its full name. The module definition must have fields
+ - testDbField SeLiteSettings.Field.SQLite that points to test SQLite DB; required
+ - appDbField SeLiteSettings.Field.SQLite that points to app SQLite DB; optional
+ - vanillaDbField SeLiteSettings.Field.SQLite that points to vanilla (snapshot) SQLite DB; optional
+ At least two of appDbField and vanillaDbField must exist.</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html">SeLite/settings/src/chrome/content/SeLiteSettings.js</a>, <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html#line2013">line 2013</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+    <dt class="tag-todo">To Do:</dt>
+    <dd class="tag-todo">
+        <ul>
+            <li>Simplify and use SeLiteSettings.commonSettings?</li>
+        </ul>
+    </dd>
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".setTestDbKeeper"><span class="type-signature">(static) </span>setTestDbKeeper<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    Set SeLiteSettings.moduleForReloadButtons.testDbKeeper and initialise it. You can call this only after you've called SeLiteSettings.setModuleForReloadButtons(this) successfully - normally it's done automatically for module 'extensions.selite-settings.common'.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>testDbKeeper.</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="SeLiteSettings.TestDbKeeper.html">SeLiteSettings.TestDbKeeper</a></span>
+|
+
+<span class="param-type">null</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Pass null if your framework doesn't use testDbKeeper.</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html">SeLite/settings/src/chrome/content/SeLiteSettings.js</a>, <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html#line1111">line 1111</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".setTestSuiteFolder"><span class="type-signature">(static) </span>setTestSuiteFolder<span class="signature">(folder)</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>folder</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">string or undefined</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html">SeLite/settings/src/chrome/content/SeLiteSettings.js</a>, <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html#line1511">line 1511</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".webRoot"><span class="type-signature">(static) </span>webRoot<span class="signature">()</span><span class="type-signature"> &rarr; {<a href="global.html#global#string">string</a>}</span></h4>
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html">SeLite/settings/src/chrome/content/SeLiteSettings.js</a>, <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html#line2048">line 2048</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Webroot URL of the application, ending with a slash '/'. This is useful because Selenium IDE doesn't allow base URL to contain path (https://github.com/SeleniumHQ/selenium/issues/1550).
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="global.html#global#string">string</a></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".webURL"><span class="type-signature">(static) </span>webURL<span class="signature">(path<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {<a href="global.html#global#string">string</a>}</span></h4>
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>path</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#global#string">string</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">URI, absolute path, relative to webroot. It can start with '/' or without it. Optional - if not present, then this just returns webroot.</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html">SeLite/settings/src/chrome/content/SeLiteSettings.js</a>, <a href="SeLite_settings_src_chrome_content_SeLiteSettings.js.html#line2061">line 2061</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    URL of the application, based on SeLiteSettings.webRoot() and the given path.
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="global.html#global#string">string</a></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Abstract.html">Abstract</a></li><li><a href="CellInfo.html">CellInfo</a></li><li><a href="Column.html">Column</a></li><li><a href="Constructor.html">Constructor</a></li><li><a href="Create.html">Create</a></li><li><a href="FilledIn.html">FilledIn</a></li><li><a href="global.TestCaseDebugContext.html">TestCaseDebugContext</a></li><li><a href="RowInfo.html">RowInfo</a></li><li><a href="RowLevel.html">RowLevel</a></li><li><a href="RowLevelOrColumn.html">RowLevelOrColumn</a></li><li><a href="selblocks.Logger.html">Logger</a></li><li><a href="Selenium.html">Selenium</a></li><li><a href="SeLiteData.Db.html">Db</a></li><li><a href="SeLiteData.Table.html">Table</a></li><li><a href="SeLiteMisc.Enum.html">Enum</a></li><li><a href="SeLiteSettings.FieldInformation.html">FieldInformation</a></li><li><a href="SeLiteSettings.TestDbKeeper.html">TestDbKeeper</a></li><li><a href="SeLiteSettings.TestDbKeeper.Columns.html">Columns</a></li><li><a href="ValueSource.html">ValueSource</a></li></ul><h3>Namespaces</h3><ul><li><a href="global.html#global">global</a></li><li><a href="selblocks.html">selblocks</a></li><li><a href="selblocks.fn.html">fn</a></li><li><a href="selblocks.InfixExpressionParser.html">InfixExpressionParser</a></li><li><a href="selblocks.xp.html">xp</a></li><li><a href="SeLiteAutoCheck.html">SeLiteAutoCheck</a></li><li><a href="SeLiteData.html">SeLiteData</a></li><li><a href="SeLiteMisc.html">SeLiteMisc</a></li><li><a href="SeLiteSettings.html">SeLiteSettings</a></li></ul><h3>Global</h3><ul><li><a href="global.html#'static'">'static'</a></li><li><a href="global.html#allowMultivaluedNonChoices">allowMultivaluedNonChoices</a></li><li><a href="global.html#applicableColumns">applicableColumns</a></li><li><a href="global.html#array">array</a></li><li><a href="global.html#Array">Array</a></li><li><a href="global.html#bool">bool</a></li><li><a href="global.html#cachedManifests">cachedManifests</a></li><li><a href="global.html#cacheRatio">cacheRatio</a></li><li><a href="global.html#callStack">callStack</a></li><li><a href="global.html#checkField">checkField</a></li><li><a href="global.html#chooseFileOrFolder">chooseFileOrFolder</a></li><li><a href="global.html#chooseJavascriptFile">chooseJavascriptFile</a></li><li><a href="global.html#createTreeChildren">createTreeChildren</a></li><li><a href="global.html#directChildList">directChildList</a></li><li><a href="global.html#directRequisiteIncompatible">directRequisiteIncompatible</a></li><li><a href="global.html#Dotclear">Dotclear</a></li><li><a href="global.html#Drupal">Drupal</a></li><li><a href="global.html#ensureFieldName">ensureFieldName</a></li><li><a href="global.html#expandStoredVars">expandStoredVars</a></li><li><a href="global.html#fieldTreeRow">fieldTreeRow</a></li><li><a href="global.html#format">format</a></li><li><a href="global.html#formatCommands">formatCommands</a></li><li><a href="global.html#FUDforum">FUDforum</a></li><li><a href="global.html#generateFields">generateFields</a></li><li><a href="global.html#generateSets">generateSets</a></li><li><a href="global.html#generateTreeColumns">generateTreeColumns</a></li><li><a href="global.html#global#infoURLtoDownloadURL">infoURLtoDownloadURL</a></li><li><a href="global.html#global#int">int</a></li><li><a href="global.html#global#loadXMLDoc">loadXMLDoc</a></li><li><a href="global.html#global#locateConnectionInfo">locateConnectionInfo</a></li><li><a href="global.html#global#Location">Location</a></li><li><a href="global.html#global#manifestsDownToFolder">manifestsDownToFolder</a></li><li><a href="global.html#global#modules">modules</a></li><li><a href="global.html#global#moduleSetFields">moduleSetFields</a></li><li><a href="global.html#global#name">name</a></li><li><a href="global.html#global#Namespace-like">Namespace-like</a></li><li><a href="global.html#global#newValueRow">newValueRow</a></li><li><a href="global.html#global#NTH_RECORD">NTH_RECORD</a></li><li><a href="global.html#global#Null">Null</a></li><li><a href="global.html#global#Object">Object</a></li><li><a href="global.html#global#Only">Only</a></li><li><a href="global.html#global#parse">parse</a></li><li><a href="global.html#global#parseCommandsAndHeader">parseCommandsAndHeader</a></li><li><a href="global.html#global#phpMyFAQ">phpMyFAQ</a></li><li><a href="global.html#global#PluginDetails">PluginDetails</a></li><li><a href="global.html#global#preProcessEdit">preProcessEdit</a></li><li><a href="global.html#global#propertiesPart">propertiesPart</a></li><li><a href="global.html#global#proxyVerifyFieldsObjectHandler">proxyVerifyFieldsObjectHandler</a></li><li><a href="global.html#global#readFile">readFile</a></li><li><a href="global.html#global#removeCommentsGetLines">removeCommentsGetLines</a></li><li><a href="global.html#global#requisiteDetailsSubset">requisiteDetailsSubset</a></li><li><a href="global.html#global#roles">roles</a></li><li><a href="global.html#global#SeLiteMiscClassForVerifiedScope">SeLiteMiscClassForVerifiedScope</a></li><li><a href="global.html#global#Serendipity">Serendipity</a></li><li><a href="global.html#global#Serving">Serving</a></li><li><a href="global.html#global#setCellText">setCellText</a></li><li><a href="global.html#global#showingPerFolder">showingPerFolder</a></li><li><a href="global.html#global#SQLiteConnectionInfo">SQLiteConnectionInfo</a></li><li><a href="global.html#global#Static">Static</a></li><li><a href="global.html#global#string">string</a></li><li><a href="global.html#global#treeCell">treeCell</a></li><li><a href="global.html#global#treeColumn">treeColumn</a></li><li><a href="global.html#global#treeColumnElements">treeColumnElements</a></li><li><a href="global.html#global#treeRowsOrChildren">treeRowsOrChildren</a></li><li><a href="global.html#global#unnamedTestSuiteFolderChangeHandlers">unnamedTestSuiteFolderChangeHandlers</a></li><li><a href="global.html#global#updateSpecial">updateSpecial</a></li><li><a href="global.html#global#valueCompound">valueCompound</a></li><li><a href="global.html#global#Whether">Whether</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Fri Jun 10 2016 10:48:03 GMT+1000 (AEST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

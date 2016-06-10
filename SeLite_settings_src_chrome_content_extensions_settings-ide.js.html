@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: SeLite/settings/src/chrome/content/extensions/settings-ide.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: SeLite/settings/src/chrome/content/extensions/settings-ide.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/*  Copyright 2013, 2014, 2015 Peter Kehl
+    This file is part of SeLite Settings.
+    
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see &lt;http://www.gnu.org/licenses/>.
+*/
+"use strict";
+
+(function(global) { // Anonymous function to make the variables local
+    var FileUtils= Components.utils.import("resource://gre/modules/FileUtils.jsm", {} ).FileUtils; // This must be local - otherwise it overrides FileUtils defined/loaded by Se IDE, and it causes problems at Se IDE start
+    var console= Components.utils.import("resource://gre/modules/Console.jsm", {}).console;
+    Components.utils.import("chrome://selite-settings/content/SeLiteSettings.js" );
+
+    // Tail intercept of Editor.prototype.confirmClose and the same for its subclasses StandaloneEditor and SidebarEditor
+    var originalConfirmClose= Editor.prototype.confirmClose;
+    Editor.prototype.confirmClose= function confirmClose() {
+        //console.log( 'Editor.prototype.confirmClose intercept invoked' );
+        var result= originalConfirmClose.call(this);
+        // result===true means that the window was closed (whether saved or not)
+        if( result ) {
+            window.location.href!=='chrome://selenium-ide/content/selenium-ide.xul' || SeLiteSettings.setTestSuiteFolder(undefined);
+            SeLiteSettings.closingIde();
+        }
+        //console.log( 'Editor.proto.confirmClose passed');
+        return result;
+    };
+    // 'editor' is an instance of either StandaloneEditor or SidebarEditor. Those classes don't refer to Editor.prototype, but they have copies of all functions from Editor.prototype (copied via objectExtend()).
+    StandaloneEditor.prototype.confirmClose= Editor.prototype.confirmClose;
+    SidebarEditor.prototype.confirmClose= Editor.prototype.confirmClose;
+    //console.log( 'Editor.prototype.confirmClose intercept set up' );
+
+    if( typeof XUL_NS=== "undefined" )  {
+        var XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+    }
+    var optionsPopup= document.getElementById('options-popup');
+    
+    var seLiteSettingsMenuItem= document.createElementNS( XUL_NS, 'menuitem' );
+    seLiteSettingsMenuItem.setAttribute( 'label', 'SeLite Settings for this suite' );
+    seLiteSettingsMenuItem.setAttribute( 'oncommand', 'openTabOrWindow("chrome://selite-settings/content/tree.xul" + (SeLiteSettings.testSuiteFolder ? "?folder="+escape(SeLiteSettings.testSuiteFolder) : "") )' );
+    optionsPopup.appendChild(seLiteSettingsMenuItem);
+    
+    /** Reload the database file(s). It copies the files.
+     *  If called with no parameters, by default it copies appDB over testDB. Maximum one of the parameters can be true.
+     *  @param reloadAppAndTest boolean, whether to reload both appDB and testDB from vanillaDB. Optional, false by default.
+     *  @param reloadVanillaAndTest boolean, whether to reload both appDB and testDB from vanillaDB. Optional, false by default.
+     *  @return void
+     * */
+    global.editor.reload_databases= function reload_databases( reloadAppAndTest, reloadVanillaAndTest ) {
+        if( !SeLiteSettings.getTestSuiteFolder() ) {
+            alert("Please open or save a test suite first, so that SeLite can collect configuration for it. Then use the button again." );
+            return;
+        }
+        if( SeLiteSettings.moduleForReloadButtons.testDbKeeper===undefined ) {
+            alert( "Please run one (any) single Selenese test command first. Then use the button again. If that doesn't help, ensure that you load a framework which calls SeLiteSettings.setTestDbKeeper(...). See http://selite.github.io/GeneralFramework#creating-a-new-framework" );
+            return;
+        }
+        SeLiteSettings.moduleForReloadButtons || SeLiteMisc.fail( 'This requires your Core extension to call SeLiteSettings.setModuleForReloadButtons().' );
+        var fields= SeLiteSettings.moduleForReloadButtons.getFieldsDownToFolder();
+
+        var testDbField= SeLiteSettings.moduleForReloadButtons.fields['testDB'];
+        var appDbField= SeLiteSettings.moduleForReloadButtons.fields['appDB'];
+        var vanillaDbField= SeLiteSettings.moduleForReloadButtons.fields[ 'vanillaDB' ];
+        var tablePrefixField= SeLiteSettings.moduleForReloadButtons.fields['tablePrefix'];
+        
+        var appDB= fields['appDB'].entry;
+        var testDB= fields['testDB'].entry;
+        if( !testDB ) {
+            alert( 'Please configure testDB (and appDB' +(
+                        reloadAppAndTest || reloadVanillaAndTest
+                        ? ' and vanillaDB'
+                        : ''
+                    )
+                    + ') and as per http://selite.github.io/InstallFramework' );
+            return;
+        }
+        if( !appDB ) {
+            alert( 'Please configure appDB (and testDB' +(
+                        reloadAppAndTest || reloadVanillaAndTest
+                        ? ' and vanillaDB'
+                        : ''
+                    )
+                    + ') and as per http://selite.github.io/InstallFramework' );
+            return;
+        }
+        var vanillaDB;
+        if( reloadAppAndTest || reloadVanillaAndTest ) {
+            vanillaDB= fields['vanillaDB'].entry;
+            if( !vanillaDB ) {
+                alert( 'Please configure vanillaDB as per http://selite.github.io/InstallFramework' );
+                return;
+            }
+        }        
+        var appStorage;
+        if( reloadAppAndTest ) {
+            // @TODO why should test need app DB storage? See check for vanillaDB storage below
+            appStorage= SeLiteData.getStorageFromSettings( appDbField, undefined, true/*dontCreate*/ );
+            // appStorage.connection() may be null, if the app DB file doesn't exist yet
+            !appStorage || !appStorage.connection() || appStorage.close( true );
+        }
+        var testStorage= SeLiteData.getStorageFromSettings( testDbField, tablePrefixField, true/*dontCreate*/ );
+        // Load test data to be preserved into memory. See e.g. SeLiteSettings.TestDbKeeper.Columns.prototype.load()
+        !testStorage || !SeLiteSettings.moduleForReloadButtons.testDbKeeper || SeLiteSettings.moduleForReloadButtons.testDbKeeper.load();
+        // testStorage.connection() may be null, if the test DB file doesn't exist yet
+        !testStorage || !testStorage.connection() || testStorage.close(true); // When I called testStorage.close() without parameter true, things failed later on unless there was a time break (e.g. when debugging)
+        
+        !(reloadAppAndTest &amp;&amp; reloadVanillaAndTest) || SeLiteMisc.fail( "Maximum one parameter can be true for reload_databases()." );
+        
+        // Reloading sequence is one of:
+        // appDB =>             testDB
+        // vanillaDB => appDB => testDB
+        // appDB => vanillaDB => testDB
+        var sourceDB= reloadAppAndTest
+            ? vanillaDB
+            : appDB;
+        if( reloadAppAndTest || reloadVanillaAndTest ) {
+            // next line only performs validation
+            !SeLiteData.getStorageFromSettings( vanillaDbField, undefined, true/*dontCreate*/ )
+                || SeLiteMisc.fail( 'vanillaDB should not be accessed by tests, yet there is SeLiteSettings.StorageFromSettings instance that uses it - ' +vanillaDbField );
+            reload( sourceDB, reloadAppAndTest
+                ? appDB
+                : vanillaDB
+            );
+        }
+        reload( sourceDB, testDB );
+        !appStorage || appStorage.open();
+        !testStorage || testStorage.open();
+        !testStorage || !SeLiteSettings.moduleForReloadButtons.testDbKeeper || SeLiteSettings.moduleForReloadButtons.testDbKeeper.testStorage===testStorage || SeLiteMisc.fail();
+        !testStorage || !SeLiteSettings.moduleForReloadButtons.testDbKeeper || SeLiteSettings.moduleForReloadButtons.testDbKeeper.store();
+        !appStorage || appStorage.close( true ); // The web application shouldn't use SQLiteConnectionManager, so let's close the connection here.
+    };
+    
+    /** Shorthand to make caller's intention clear.
+     * */
+    global.editor.reload_test= function reload_test() {
+        global.editor.reload_databases();
+    };
+    
+    /** @private
+    When reloading, the target file doesn't need to exist, but its immediate parent directories must exist
+     * */
+    function reload( fromFileName, toFileName ) {
+        var fromFile= new FileUtils.File(fromFileName); // Object of class nsIFile        
+        var toFile= new FileUtils.File(toFileName);
+        toFile.parent.exists() || SeLiteMisc.fail( 'Target folder ' +toFile.parent.path+ ' does not exist' );
+        console.log( 'Copying ' +fromFileName+ ' to ' +toFileName );
+        // This copies the file even if the target file exists already - contrary to https://developer.mozilla.org/en-US/docs/Mozilla/Tech/XPCOM/Reference/Interface/nsIFile#copyToFollowingLinks%28%29
+        fromFile.copyToFollowingLinks( toFile.parent, toFile.leafName );
+    }
+    
+    /** Reload testDB and appDB from vanillaDB: vanilla -&amp;gt; green  -&amp;gt; blue.
+     * */
+    global.editor.reload_app_and_test= function reload_app_and_test() {
+        this.reload_databases( true );
+    };
+    /** Reload vanillaDB and testDB from appDB: green -&amp;gt; vanilla  -&amp;gt; blue.
+     * */
+    global.editor.reload_vanilla_and_test= function reload_vanilla_and_test() {
+        this.reload_databases( false, true );
+    };
+
+})(this);</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Abstract.html">Abstract</a></li><li><a href="CellInfo.html">CellInfo</a></li><li><a href="Column.html">Column</a></li><li><a href="Constructor.html">Constructor</a></li><li><a href="Create.html">Create</a></li><li><a href="FilledIn.html">FilledIn</a></li><li><a href="global.TestCaseDebugContext.html">TestCaseDebugContext</a></li><li><a href="RowInfo.html">RowInfo</a></li><li><a href="RowLevel.html">RowLevel</a></li><li><a href="RowLevelOrColumn.html">RowLevelOrColumn</a></li><li><a href="selblocks.Logger.html">Logger</a></li><li><a href="Selenium.html">Selenium</a></li><li><a href="SeLiteData.Db.html">Db</a></li><li><a href="SeLiteData.Table.html">Table</a></li><li><a href="SeLiteMisc.Enum.html">Enum</a></li><li><a href="SeLiteSettings.FieldInformation.html">FieldInformation</a></li><li><a href="SeLiteSettings.TestDbKeeper.html">TestDbKeeper</a></li><li><a href="SeLiteSettings.TestDbKeeper.Columns.html">Columns</a></li><li><a href="ValueSource.html">ValueSource</a></li></ul><h3>Namespaces</h3><ul><li><a href="global.html#global">global</a></li><li><a href="selblocks.html">selblocks</a></li><li><a href="selblocks.fn.html">fn</a></li><li><a href="selblocks.InfixExpressionParser.html">InfixExpressionParser</a></li><li><a href="selblocks.xp.html">xp</a></li><li><a href="SeLiteAutoCheck.html">SeLiteAutoCheck</a></li><li><a href="SeLiteData.html">SeLiteData</a></li><li><a href="SeLiteMisc.html">SeLiteMisc</a></li><li><a href="SeLiteSettings.html">SeLiteSettings</a></li></ul><h3>Global</h3><ul><li><a href="global.html#'static'">'static'</a></li><li><a href="global.html#allowMultivaluedNonChoices">allowMultivaluedNonChoices</a></li><li><a href="global.html#applicableColumns">applicableColumns</a></li><li><a href="global.html#array">array</a></li><li><a href="global.html#Array">Array</a></li><li><a href="global.html#bool">bool</a></li><li><a href="global.html#cachedManifests">cachedManifests</a></li><li><a href="global.html#cacheRatio">cacheRatio</a></li><li><a href="global.html#callStack">callStack</a></li><li><a href="global.html#checkField">checkField</a></li><li><a href="global.html#chooseFileOrFolder">chooseFileOrFolder</a></li><li><a href="global.html#chooseJavascriptFile">chooseJavascriptFile</a></li><li><a href="global.html#createTreeChildren">createTreeChildren</a></li><li><a href="global.html#directChildList">directChildList</a></li><li><a href="global.html#directRequisiteIncompatible">directRequisiteIncompatible</a></li><li><a href="global.html#Dotclear">Dotclear</a></li><li><a href="global.html#Drupal">Drupal</a></li><li><a href="global.html#ensureFieldName">ensureFieldName</a></li><li><a href="global.html#expandStoredVars">expandStoredVars</a></li><li><a href="global.html#fieldTreeRow">fieldTreeRow</a></li><li><a href="global.html#format">format</a></li><li><a href="global.html#formatCommands">formatCommands</a></li><li><a href="global.html#FUDforum">FUDforum</a></li><li><a href="global.html#generateFields">generateFields</a></li><li><a href="global.html#generateSets">generateSets</a></li><li><a href="global.html#generateTreeColumns">generateTreeColumns</a></li><li><a href="global.html#global#infoURLtoDownloadURL">infoURLtoDownloadURL</a></li><li><a href="global.html#global#int">int</a></li><li><a href="global.html#global#loadXMLDoc">loadXMLDoc</a></li><li><a href="global.html#global#locateConnectionInfo">locateConnectionInfo</a></li><li><a href="global.html#global#Location">Location</a></li><li><a href="global.html#global#manifestsDownToFolder">manifestsDownToFolder</a></li><li><a href="global.html#global#modules">modules</a></li><li><a href="global.html#global#moduleSetFields">moduleSetFields</a></li><li><a href="global.html#global#name">name</a></li><li><a href="global.html#global#Namespace-like">Namespace-like</a></li><li><a href="global.html#global#newValueRow">newValueRow</a></li><li><a href="global.html#global#NTH_RECORD">NTH_RECORD</a></li><li><a href="global.html#global#Null">Null</a></li><li><a href="global.html#global#Object">Object</a></li><li><a href="global.html#global#Only">Only</a></li><li><a href="global.html#global#parse">parse</a></li><li><a href="global.html#global#parseCommandsAndHeader">parseCommandsAndHeader</a></li><li><a href="global.html#global#phpMyFAQ">phpMyFAQ</a></li><li><a href="global.html#global#PluginDetails">PluginDetails</a></li><li><a href="global.html#global#preProcessEdit">preProcessEdit</a></li><li><a href="global.html#global#propertiesPart">propertiesPart</a></li><li><a href="global.html#global#proxyVerifyFieldsObjectHandler">proxyVerifyFieldsObjectHandler</a></li><li><a href="global.html#global#readFile">readFile</a></li><li><a href="global.html#global#removeCommentsGetLines">removeCommentsGetLines</a></li><li><a href="global.html#global#requisiteDetailsSubset">requisiteDetailsSubset</a></li><li><a href="global.html#global#roles">roles</a></li><li><a href="global.html#global#SeLiteMiscClassForVerifiedScope">SeLiteMiscClassForVerifiedScope</a></li><li><a href="global.html#global#Serendipity">Serendipity</a></li><li><a href="global.html#global#Serving">Serving</a></li><li><a href="global.html#global#setCellText">setCellText</a></li><li><a href="global.html#global#showingPerFolder">showingPerFolder</a></li><li><a href="global.html#global#SQLiteConnectionInfo">SQLiteConnectionInfo</a></li><li><a href="global.html#global#Static">Static</a></li><li><a href="global.html#global#string">string</a></li><li><a href="global.html#global#treeCell">treeCell</a></li><li><a href="global.html#global#treeColumn">treeColumn</a></li><li><a href="global.html#global#treeColumnElements">treeColumnElements</a></li><li><a href="global.html#global#treeRowsOrChildren">treeRowsOrChildren</a></li><li><a href="global.html#global#unnamedTestSuiteFolderChangeHandlers">unnamedTestSuiteFolderChangeHandlers</a></li><li><a href="global.html#global#updateSpecial">updateSpecial</a></li><li><a href="global.html#global#valueCompound">valueCompound</a></li><li><a href="global.html#global#Whether">Whether</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Fri Jun 10 2016 10:48:03 GMT+1000 (AEST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

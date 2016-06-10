@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: SeLite/phpmyfaq/phpmyfaq-ui_elements.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: SeLite/phpmyfaq/phpmyfaq-ui_elements.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/*
+ *   Copyright 2015 Peter Kehl
+* This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/.*/
+"use strict";
+
+(function() {
+    phpMyFAQ.uiMap= new UIMap();
+    
+    phpMyFAQ.uiMap.addPageset({
+        name: 'allPages',
+        description: 'all phpMyFAQ pages',
+        pathRegexp: '.*'
+    });
+    phpMyFAQ.uiMap.addElement('allPages', {
+       name: 'userOwnMenu' ,
+       description: "&lt;ul> containing a dropdown menu and a span with name of the currently logged user. Not visible if the user's menu is collapsed. Not clickable.",
+       locator: "//a[ @class='dropdown-toggle' ]/../self::li/ul[ @class='dropdown-menu' ]"
+    });
+    phpMyFAQ.uiMap.addElement('allPages', {
+       name: 'userOwnMenuToggle' ,
+       description: '&lt;a> that toggles user own dropdown menu to expand/collapse',
+       locator: Object.keys(phpMyFAQ.uiMap.pagesets.allPages.uiElements.userOwnMenu.defaultLocators)[0]+ '/../self::li/a[ @class="dropdown-toggle" ]'
+    });
+    var userOwnMenuItems= {
+        // Non-admin pages only:
+            // Shown whether logged on or not:
+            'Advanced search': '?action=search',
+            'All categories': '?action=show',
+            'Add new FAQ': '?action=add',
+            'Add question': '?action=ask',
+            'Open questions': '?action=open',
+            // Only shown when not logged on:
+            'Sign up': '?action=register',
+            'Login': '?action=login',
+            // Only shown when logged on, and if applicable:
+            'User Control Panel': '?action=ucp',
+            'Administration': '/admin/index.php',
+        // Admin pages only:
+            'Change Password': 'index.php?action=passwd',
+        // Both non-admin and admin pages:
+            'Logout': '?action=logout' // This covers both 'Logout' on admin pages: 'index.php?action=logout' and on non-admin pages: '?action=logout'.
+    };
+    phpMyFAQ.uiMap.addElement('allPages', {
+       name: 'userOwnMenuItem' ,
+       description: "&lt;a> for the user's own menu item. Most are for non-admin pages only.",
+       args: [
+            {name: 'item',
+             description: 'Item label/text',
+             defaultValues: Object.keys(userOwnMenuItems)
+            }
+       ],
+       getLocator: function getLocator(args) {
+           // Use contains(@href, '...') rather than @href='...', so that it covers both 'Logout' URLs (see above).
+           return Object.keys(phpMyFAQ.uiMap.pagesets.allPages.uiElements.userOwnMenu.defaultLocators)[0]+ '/li/a[ contains(@href, "' +userOwnMenuItems[args.item]+ '") ]';
+       }
+    });
+    phpMyFAQ.uiMap.addElement('allPages', {
+       name: 'userOwnMenuLoggedInName' ,
+       description: "&lt;span> in user's own menu that contains the current user's name",
+       args: [
+            {name: 'displayName',
+             description: "User's display name. Matched as a substring of the content of &lt;span>. Optional - if not set, then this matches any user's name.",
+             defaultValues: ['']
+            }
+       ],
+       getLocator: function getLocator(args) {
+           return Object.keys(phpMyFAQ.uiMap.pagesets.allPages.uiElements.userOwnMenu.defaultLocators)[0]+ '/preceding::a/span'+ (
+               args.displayName!==undefined &amp;&amp; args.displayName!==''
+               ? '[ contains(., ' +(''+args.displayName).quoteForXPath()+ ') ]'
+               : ''
+           );
+       }
+    } );
+    phpMyFAQ.uiMap.addElement('allPages', {
+        name: 'bootstrapMenuToggle',
+        description: '&lt;button> for the Bootstrap menu toggle button. Visible in mobile mode only.',
+        locator: "//button[ @class='navbar-toggle' ]"
+    } );
+    
+    // --------
+    phpMyFAQ.uiMap.addPageset({
+        name: 'nonAdminPages',
+        description: 'Non-admin phpMyFAQ pages',
+        pathRegexp: '(?!admin/).*'
+    });
+    phpMyFAQ.uiMap.addElement('nonAdminPages', {
+        name: 'bootstrapMenu',
+        description: '&lt;div> for the Bootstrap menu. Only use through phpMyFAQ.bootstrapMenuLocator() to detect whether the menu is expanded; do not use to access menu items etc.',
+        locator: "//div[ @id='pmf-navbar-collapse' ]"
+    } );
+    
+    phpMyFAQ.uiMap.addPageset({
+        name: 'adminPages',
+        description: 'Admin pages of  phpMyFAQ',
+        pathRegexp: 'admin/'
+    });
+    
+    /** object {
+     *    string sectionName: object {
+     *        topLevel: string URL,
+     *        secondLevel: object {
+     *          string itemName: string URL,
+     *          ...
+     *        }
+     *    },
+     *    ...
+     * }
+     * */
+    var adminNavigation= {
+        Dashboard: {
+            topLevel: 'index.php',
+            secondLevel: {}
+        },
+        Users: {
+            topLevel: 'index.php?action=user',
+            secondLevel: {
+                'Users': '?action=user',
+                'Change Password': '?action=passwd'
+            }
+        },
+        Content: {
+            topLevel: 'index.php?action=content',
+            secondLevel: {
+                'FAQ Categories': '?action=category',
+                'Add new FAQ': '?action=editentry',
+                'Edit existing FAQs': '?action=view',
+                'Search for FAQs': '?action=searchfaqs',
+                'Comments': '?action=comments',
+                'Open questions': '?action=question',
+                'FAQ Glossary': '?action=glossary',
+                'FAQ News': '?action=news',
+                'FAQ Attachments': '?action=attachments',
+                'Tags': '?action=tags'
+            }
+        },
+        Statistics: {
+            topLevel: 'index.php?action=statistics',
+            secondLevel: {
+                'Rating Statistics': '?action=statistics',
+                'View Sessions': '?action=viewsessions',
+                'View Adminlog': '?action=adminlog',
+                'Search Statistics': '?action=searchstats',
+                'Reports': '?action=reports'
+            }
+        },
+        Exports: {
+            topLevel: 'index.php?action=export',
+            secondLevel: {}
+        },
+        Backup: {
+            topLevel: 'index.php?action=backup',
+            secondLevel: {}
+        },
+        Configuration: {
+            topLevel: 'index.php?action=config',
+            secondLevel: {
+                'Edit configuration': '?action=config',
+                'System Information': '?action=system',
+                'FAQ Multi-sites': '?action=instances',
+                'Stop Words': '?action=stopwordsconfig',
+                'Interface Translation': '?action=translist'
+            }
+        }
+    };
+    /** Assumptions:
+     *  - top level items have URLs starting with 'index.php'
+     *  - second level items have URLs starting with '?action='
+     *  */
+    phpMyFAQ.uiMap.addElement('adminPages', {
+        name: 'topNavigation',
+        description: 'Link to top level navigation entry.',
+        getLocator: function(args) {
+            // I could set a 'local variable', as per chrome://selenium-ide/content/selenium-core/scripts/ui-doc.html > UI-Element Shorthand > _*, but it could make this less clear.
+            return '//ul[ @id="side-menu" ]/li/a[ @href="' +adminNavigation[ args.section ].topLevel+ '" ]';
+        },
+        args: [
+            {
+                name: 'section',
+                description: 'Name of the section',
+                required: true,
+                defaultValues: Object.keys( adminNavigation )
+            }
+        ],
+        testcase1: {
+            args: { section: 'Users' },
+            xhtml:
+            '&lt;ul class="nav" id="side-menu">\
+                &lt;li class="sidebar-userinfo">\
+                    &lt;div class="userpanel">\
+                        &lt;small>Logged in as &lt;/small>&lt;br/>\
+                        Pete                    &lt;/div>\
+                &lt;/li>\
+                &lt;li class="active">\
+                    &lt;a href="index.php">\
+                        &lt;i class="fa fa-dashboard fa-fw">&lt;/i> Dashboard                    &lt;/a>\
+                &lt;/li>\
+                &lt;li>\
+                    &lt;a href="index.php?action=user" expected-result="1">\
+                        &lt;i class="fa fa-users">&lt;/i> Users                        &lt;span class="fa arrow">&lt;/span>&lt;/a>\
+                    \
+                    &lt;ul class="nav nav-second-level collapse ">\
+                        &lt;li>&lt;a href="?action=category">FAQ Categories&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=editentry">Add new FAQ record&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=view">Edit existing FAQs&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=question">Open questions&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=system">System Information&lt;/a>&lt;/li>\
+                    &lt;/ul>\
+                &lt;/li>\
+                &lt;li>\
+                    &lt;a href="index.php?action=content">\
+                        &lt;i class="fa fa-edit fa-fw">&lt;/i> Content                        &lt;span class="fa arrow">&lt;/span>&lt;/a>\
+                    \
+                    &lt;ul class="nav nav-second-level collapse ">\
+                        &lt;li>&lt;a href="?action=category">FAQ Categories&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=editentry">Add new FAQ record&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=view">Edit existing FAQs&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=question">Open questions&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=system">System Information&lt;/a>&lt;/li>\
+                    &lt;/ul>\
+                &lt;/li>\
+                &lt;li>\
+                    &lt;a href="index.php?action=statistics">\
+                        &lt;i class="fa fa-tasks fa-fw">&lt;/i> Statistics                        &lt;span class="fa arrow">&lt;/span>&lt;/a>\
+                    \
+                    &lt;ul class="nav nav-second-level collapse ">\
+                        &lt;li>&lt;a href="?action=category">FAQ Categories&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=editentry">Add new FAQ record&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=view">Edit existing FAQs&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=question">Open questions&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=system">System Information&lt;/a>&lt;/li>\
+                    &lt;/ul>\
+                &lt;/li>\
+                &lt;li>\
+                    &lt;a href="index.php?action=export">\
+                        &lt;i class="fa fa-book fa-fw">&lt;/i> Exports                    &lt;/a>\
+                &lt;/li>\
+                &lt;li>\
+                    &lt;a href="index.php?action=backup">\
+                        &lt;i class="fa fa-download fa-fw">&lt;/i> Backup                    &lt;/a>\
+                    &lt;ul class="nav nav-second-level collapse">\
+                        &lt;li>&lt;a href="?action=category">FAQ Categories&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=editentry">Add new FAQ record&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=view">Edit existing FAQs&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=question">Open questions&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=system">System Information&lt;/a>&lt;/li>\
+                    &lt;/ul>\
+                &lt;/li>\
+                &lt;li>\
+                    &lt;a href="index.php?action=config">\
+                        &lt;i class="fa fa-wrench fa-fw">&lt;/i> Configuration                        &lt;span class="fa arrow">&lt;/span>&lt;/a>\
+                    \
+                    &lt;ul class="nav nav-second-level collapse ">\
+                        &lt;li>&lt;a href="?action=category">FAQ Categories&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=editentry">Add new FAQ record&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=view">Edit existing FAQs&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=question">Open questions&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=system">System Information&lt;/a>&lt;/li>\
+                    &lt;/ul>\
+                &lt;/li>\
+\
+                &lt;li class="sidebar-adminlog">\
+                    &lt;div>\
+                        &lt;b class="fa fa-info-circle fa-fw">&lt;/b> Admin worklog&lt;br/>\
+                        &lt;span id="saving_data_indicator">&lt;/span>\
+                    &lt;/div>\
+                &lt;/li>\
+                &lt;li class="sidebar-sessioninfo">\
+                    &lt;div>\
+                        &lt;b class="fa fa-clock-o fa-fw">&lt;/b> Session expires in:\
+                        &lt;span id="sessioncounter">00:29:14&lt;/span>\
+                    &lt;/div>\
+                &lt;/li>\
+            &lt;/ul>'
+        }
+    });
+    // the following is for development, so that when Bootstrap re-loads this file automatically, it re-runs the test.
+    phpMyFAQ.uiMap.pagesets.adminPages.uiElements.topNavigation.test();//@TODO remove once https://github.com/SeleniumHQ/selenium/issues/1536 gets fixed
+    
+    phpMyFAQ.uiMap.addElement('adminPages', {
+        name: 'secondNavigation',
+        description: 'Link to second level navigation entry.',
+        getLocator: function(args) {
+            // Use exact match by @href='...', rather than contains(@href, '...'), because URLs for some parts end up with same substring (e.g. Statistics and Rating Statistics).
+            return '//ul[ @id="side-menu" ]/li/a[ @href="' +adminNavigation[ args.section ].topLevel+ '" ]/following-sibling::ul/li/a[ @href="' +adminNavigation[ args.section ].secondLevel[ args.item ]+ '" ]';
+        },
+        args: [
+            {
+                name: 'section',
+                description: 'Name of the section',
+                required: true,
+                defaultValues: Object.keys( adminNavigation )
+            },
+            {
+                name: 'item',
+                description: 'Name of the second level item',
+                required: true,
+                defaultValues: SeLiteMisc.collectFromDepth( SeLiteMisc.collectByColumnFromDeep(adminNavigation, ['secondLevel'], 1), 1, undefined, true )
+            }
+        ],
+        testcase1: {
+            args: { section: 'Users', item:'Change Password' },
+            xhtml: '&lt;ul class="nav" id="side-menu">\
+                &lt;li class="sidebar-userinfo">\
+                    &lt;div class="userpanel">\
+                        &lt;small>Logged in as &lt;/small>&lt;br/>\
+                        Pete                    &lt;/div>\
+                &lt;/li>\
+                &lt;li>\
+                    &lt;a href="index.php">\
+                        &lt;i class="fa fa-dashboard fa-fw">&lt;/i> Dashboard                    &lt;/a>\
+                &lt;/li>\
+                &lt;li class="active">\
+                    &lt;a href="index.php?action=user">\
+                        &lt;i class="fa fa-users">&lt;/i> Users                        &lt;span class="fa arrow">&lt;/span>&lt;/a>\
+                    \
+                    &lt;ul class="nav nav-second-level collapse in">\
+                        &lt;li class="active">&lt;a href="?action=user">Users&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=passwd" expected-result="1">Change Password&lt;/a>&lt;/li>\
+                    &lt;/ul>\
+                &lt;/li>\
+                &lt;li>\
+                    &lt;a href="index.php?action=content">\
+                        &lt;i class="fa fa-edit fa-fw">&lt;/i> Content                        &lt;span class="fa arrow">&lt;/span>&lt;/a>\
+                    \
+                    &lt;ul class="nav nav-second-level collapse ">\
+                        &lt;li class="active">&lt;a href="?action=user">Users&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=passwd">Change Password&lt;/a>&lt;/li>\
+                    &lt;/ul>\
+                &lt;/li>\
+                &lt;li>\
+                    &lt;a href="index.php?action=statistics">\
+                        &lt;i class="fa fa-tasks fa-fw">&lt;/i> Statistics                        &lt;span class="fa arrow">&lt;/span>&lt;/a>\
+                    \
+                    &lt;ul class="nav nav-second-level collapse ">\
+                        &lt;li class="active">&lt;a href="?action=user">Users&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=passwd">Change Password&lt;/a>&lt;/li>\
+                    &lt;/ul>\
+                &lt;/li>\
+                &lt;li>\
+                    &lt;a href="index.php?action=export">\
+                        &lt;i class="fa fa-book fa-fw">&lt;/i> Exports                    &lt;/a>\
+                &lt;/li>\
+                &lt;li>\
+                    &lt;a href="index.php?action=backup">\
+                        &lt;i class="fa fa-download fa-fw">&lt;/i> Backup                    &lt;/a>\
+                    &lt;ul class="nav nav-second-level collapse">\
+                        &lt;li class="active">&lt;a href="?action=user">Users&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=passwd">Change Password&lt;/a>&lt;/li>\
+                    &lt;/ul>\
+                &lt;/li>\
+1                &lt;li>\
+                    &lt;a href="index.php?action=config">\
+                        &lt;i class="fa fa-wrench fa-fw">&lt;/i> Configuration                        &lt;span class="fa arrow">&lt;/span>&lt;/a>\
+                    \
+                    &lt;ul class="nav nav-second-level collapse ">\
+                        &lt;li class="active">&lt;a href="?action=user">Users&lt;/a>&lt;/li>\
+&lt;li>&lt;a href="?action=passwd">Change Password&lt;/a>&lt;/li>\
+                    &lt;/ul>\
+                &lt;/li>\
+\
+                &lt;li class="sidebar-adminlog">\
+                    &lt;div>\
+                        &lt;b class="fa fa-info-circle fa-fw">&lt;/b> Admin worklog&lt;br/>\
+                        &lt;span id="saving_data_indicator">&lt;/span>\
+                    &lt;/div>\
+                &lt;/li>\
+                &lt;li class="sidebar-sessioninfo">\
+                    &lt;div>\
+                        &lt;b class="fa fa-clock-o fa-fw">&lt;/b> Session expires in:\
+                        &lt;span id="sessioncounter">00:29:41&lt;/span>\
+                    &lt;/div>\
+                &lt;/li>\
+            &lt;/ul>'
+        }
+    });
+    phpMyFAQ.uiMap.pagesets.adminPages.uiElements.secondNavigation.test();//@TODO remove once https://github.com/SeleniumHQ/selenium/issues/1536 gets fixed
+    phpMyFAQ.uiMap.addElement('adminPages', {
+        name: 'bootstrapMenu',
+        description: '&lt;span> for the Bootstrap menu. Only use through phpMyFAQ.bootstrapMenuLocator() to detect whether the menu is expanded; do not use to access menu items etc.',
+        locator: "//ul[ @id='side-menu' ]"
+    } );
+    
+    /** @return {string} Locator of bootstrapMenuLocator, depending on current URL. It works for both admin and non-admin pages. Only use it to detect whether the bootstrap menu is expanded; do not use to access menu items etc.
+     * */
+    phpMyFAQ.bootstrapMenuLocator= function bootstrapMenuLocator() {
+        return SeLiteSettings.appPath().startsWith( '/admin/' )
+            ? 'ui=adminPages::bootstrapMenu()'
+            : 'ui=nonAdminPages::bootstrapMenu()';
+    };
+
+})();</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Abstract.html">Abstract</a></li><li><a href="CellInfo.html">CellInfo</a></li><li><a href="Column.html">Column</a></li><li><a href="Constructor.html">Constructor</a></li><li><a href="Create.html">Create</a></li><li><a href="FilledIn.html">FilledIn</a></li><li><a href="global.TestCaseDebugContext.html">TestCaseDebugContext</a></li><li><a href="RowInfo.html">RowInfo</a></li><li><a href="RowLevel.html">RowLevel</a></li><li><a href="RowLevelOrColumn.html">RowLevelOrColumn</a></li><li><a href="selblocks.Logger.html">Logger</a></li><li><a href="Selenium.html">Selenium</a></li><li><a href="SeLiteData.Db.html">Db</a></li><li><a href="SeLiteData.Table.html">Table</a></li><li><a href="SeLiteMisc.Enum.html">Enum</a></li><li><a href="SeLiteSettings.FieldInformation.html">FieldInformation</a></li><li><a href="SeLiteSettings.TestDbKeeper.html">TestDbKeeper</a></li><li><a href="SeLiteSettings.TestDbKeeper.Columns.html">Columns</a></li><li><a href="ValueSource.html">ValueSource</a></li></ul><h3>Namespaces</h3><ul><li><a href="global.html#global">global</a></li><li><a href="selblocks.html">selblocks</a></li><li><a href="selblocks.fn.html">fn</a></li><li><a href="selblocks.InfixExpressionParser.html">InfixExpressionParser</a></li><li><a href="selblocks.xp.html">xp</a></li><li><a href="SeLiteAutoCheck.html">SeLiteAutoCheck</a></li><li><a href="SeLiteData.html">SeLiteData</a></li><li><a href="SeLiteMisc.html">SeLiteMisc</a></li><li><a href="SeLiteSettings.html">SeLiteSettings</a></li></ul><h3>Global</h3><ul><li><a href="global.html#'static'">'static'</a></li><li><a href="global.html#allowMultivaluedNonChoices">allowMultivaluedNonChoices</a></li><li><a href="global.html#applicableColumns">applicableColumns</a></li><li><a href="global.html#array">array</a></li><li><a href="global.html#Array">Array</a></li><li><a href="global.html#bool">bool</a></li><li><a href="global.html#cachedManifests">cachedManifests</a></li><li><a href="global.html#cacheRatio">cacheRatio</a></li><li><a href="global.html#callStack">callStack</a></li><li><a href="global.html#checkField">checkField</a></li><li><a href="global.html#chooseFileOrFolder">chooseFileOrFolder</a></li><li><a href="global.html#chooseJavascriptFile">chooseJavascriptFile</a></li><li><a href="global.html#createTreeChildren">createTreeChildren</a></li><li><a href="global.html#directChildList">directChildList</a></li><li><a href="global.html#directRequisiteIncompatible">directRequisiteIncompatible</a></li><li><a href="global.html#Dotclear">Dotclear</a></li><li><a href="global.html#Drupal">Drupal</a></li><li><a href="global.html#ensureFieldName">ensureFieldName</a></li><li><a href="global.html#expandStoredVars">expandStoredVars</a></li><li><a href="global.html#fieldTreeRow">fieldTreeRow</a></li><li><a href="global.html#format">format</a></li><li><a href="global.html#formatCommands">formatCommands</a></li><li><a href="global.html#FUDforum">FUDforum</a></li><li><a href="global.html#generateFields">generateFields</a></li><li><a href="global.html#generateSets">generateSets</a></li><li><a href="global.html#generateTreeColumns">generateTreeColumns</a></li><li><a href="global.html#global#infoURLtoDownloadURL">infoURLtoDownloadURL</a></li><li><a href="global.html#global#int">int</a></li><li><a href="global.html#global#loadXMLDoc">loadXMLDoc</a></li><li><a href="global.html#global#locateConnectionInfo">locateConnectionInfo</a></li><li><a href="global.html#global#Location">Location</a></li><li><a href="global.html#global#manifestsDownToFolder">manifestsDownToFolder</a></li><li><a href="global.html#global#modules">modules</a></li><li><a href="global.html#global#moduleSetFields">moduleSetFields</a></li><li><a href="global.html#global#name">name</a></li><li><a href="global.html#global#Namespace-like">Namespace-like</a></li><li><a href="global.html#global#newValueRow">newValueRow</a></li><li><a href="global.html#global#NTH_RECORD">NTH_RECORD</a></li><li><a href="global.html#global#Null">Null</a></li><li><a href="global.html#global#Object">Object</a></li><li><a href="global.html#global#Only">Only</a></li><li><a href="global.html#global#parse">parse</a></li><li><a href="global.html#global#parseCommandsAndHeader">parseCommandsAndHeader</a></li><li><a href="global.html#global#phpMyFAQ">phpMyFAQ</a></li><li><a href="global.html#global#PluginDetails">PluginDetails</a></li><li><a href="global.html#global#preProcessEdit">preProcessEdit</a></li><li><a href="global.html#global#propertiesPart">propertiesPart</a></li><li><a href="global.html#global#proxyVerifyFieldsObjectHandler">proxyVerifyFieldsObjectHandler</a></li><li><a href="global.html#global#readFile">readFile</a></li><li><a href="global.html#global#removeCommentsGetLines">removeCommentsGetLines</a></li><li><a href="global.html#global#requisiteDetailsSubset">requisiteDetailsSubset</a></li><li><a href="global.html#global#roles">roles</a></li><li><a href="global.html#global#SeLiteMiscClassForVerifiedScope">SeLiteMiscClassForVerifiedScope</a></li><li><a href="global.html#global#Serendipity">Serendipity</a></li><li><a href="global.html#global#Serving">Serving</a></li><li><a href="global.html#global#setCellText">setCellText</a></li><li><a href="global.html#global#showingPerFolder">showingPerFolder</a></li><li><a href="global.html#global#SQLiteConnectionInfo">SQLiteConnectionInfo</a></li><li><a href="global.html#global#Static">Static</a></li><li><a href="global.html#global#string">string</a></li><li><a href="global.html#global#treeCell">treeCell</a></li><li><a href="global.html#global#treeColumn">treeColumn</a></li><li><a href="global.html#global#treeColumnElements">treeColumnElements</a></li><li><a href="global.html#global#treeRowsOrChildren">treeRowsOrChildren</a></li><li><a href="global.html#global#unnamedTestSuiteFolderChangeHandlers">unnamedTestSuiteFolderChangeHandlers</a></li><li><a href="global.html#global#updateSpecial">updateSpecial</a></li><li><a href="global.html#global#valueCompound">valueCompound</a></li><li><a href="global.html#global#Whether">Whether</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Fri Jun 10 2016 10:48:03 GMT+1000 (AEST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

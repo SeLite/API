@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: SelBlocksGlobal/sel-blocks-fx_xpi/chrome/content/extensions/xpath-processing.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: SelBlocksGlobal/sel-blocks-fx_xpi/chrome/content/extensions/xpath-processing.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/** Provides richer functionality than is available via Selenium xpathEvaluator.
+ *  Used only by locator-builders, because it assumes a Firefox environment.
+ */
+"use strict";
+
+/** @namespace */
+selblocks.xp= {};
+
+// selbocks name-space
+(function($$){
+    /** Evaluate an xpathExpression against the given document object.
+        The document is also the starting context, unless a contextNode is provided.
+        Results are in terms of the most natural type, unless resultType specified.
+    */
+    selblocks.xp.evaluateXpath= function(doc, xpath, contextNode, resultType, namespaceResolver, resultObj)
+    {
+      $$.xp.logXpathEval(doc, xpath, contextNode);
+      var isResultObjProvided = (resultObj != null);
+      try {
+        var result = doc.evaluate(
+            xpath
+            , contextNode || doc
+            , namespaceResolver
+            , resultType || XPathResult.ANY_TYPE
+            , resultObj);
+        $$.LOG.debug("XPATH Result: " + $$.xp.fmtXpathResultType(result) + " : " + xpath);
+      }
+      catch (err) {
+        $$.LOG.error("XPATH: " + xpath);
+        throw err;
+      }
+      if (isResultObjProvided)
+        result = resultObj;
+
+      return result;
+    };
+
+    /** Find the first matching element
+    */
+    selblocks.xp.selectElement= function(doc, xpath, contextNode) {
+      var elems = $$.xp.selectElements(doc, xpath, contextNode);
+      return (elems &amp;&amp; elems.length > 0 ? elems[0] : null);
+    };
+
+    /** Find all matching elements
+        TBD: make XPath engine choice configurable
+    */
+    selblocks.xp.selectElements= function(doc, xpath, contextNode) {
+      var elems = $$.xp.selectNodes(doc, xpath, contextNode);
+      return elems;
+    };
+
+    /** Select a single node
+        (analogous to xpath[1], without the axis-precedence gotchas)
+    */
+    selblocks.xp.selectNode= function(doc, xpath, contextNode, resultType) {
+      var result = $$.xp.evaluateXpath(doc, xpath, contextNode, resultType || XPathResult.FIRST_ORDERED_NODE_TYPE);
+      return $$.unwrapObject(result.singleNodeValue);
+    };
+
+    /** Select one or more nodes as an array
+    */
+    selblocks.xp.selectNodes= function(doc, xpath, contextNode, resultType) {
+      var result = $$.xp.evaluateXpath(doc, xpath, contextNode, resultType || XPathResult.ORDERED_NODE_SNAPSHOT_TYPE);
+      var nodes = [];
+      $$.xp.foreachNode(result, function (n, i) {
+        nodes.push($$.unwrapObject(n));
+      });
+      return nodes;
+    };
+
+    /** Select all matching nodes in the document, as a snapshot object
+    */
+    selblocks.xp.selectNodeSnapshot= function(doc, xpath, contextNode) {
+      return $$.xp.evaluateXpath(doc, xpath, contextNode, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE);
+    };
+
+    /** Select the exact matching node, else null
+    */
+    selblocks.xp.selectUniqueNodeNullable= function(doc, xpath, contextNode)
+    {
+      var nodeSet = $$.xp.selectNodeSnapshot(doc, xpath, contextNode);
+      if (!nodeSet || nodeSet.snapshotLength == 0) {
+        return null;
+      }
+      if (nodeSet.snapshotLength > 1) {
+        $$.LOG.debug("Ambiguous: " + nodeSet.snapshotLength + " matches");
+        return null;
+      }
+      return $$.unwrapObject(nodeSet.snapshotItem(0));
+    };
+
+    /** Select matching node as string/number/boolean value
+       TBD: Exclude the text of certain node types (eg, script).
+         A way to filter would be to add "//*[not(self::script)]/text()[normalize-space(.)!='']"
+         But that yields a node set and XPath stringify operations only use the first node in a node set.
+         Other invisibles: //*[contains(translate(@style,' ',''),'display:none') or contains(translate(@style,' ',''),'visibility:hidden')]
+           (for inline styling at least, cascaded styling is not accessible via XPath)
+    */
+    selblocks.xp.selectValue= function(doc, xpath, contextNode)
+    {
+      var result = $$.xp.evaluateXpath(doc, xpath, contextNode, XPathResult.ANY_TYPE);
+      if (!result)
+        return null;
+
+      var value = null;
+      switch (result.resultType) {
+        case result.STRING_TYPE:  value = result.stringValue;  break;
+        case result.NUMBER_TYPE:  value = result.numberValue;  break;
+        case result.BOOLEAN_TYPE: value = result.booleanValue; break;
+      }
+      return value;
+    };
+
+    /** Operate on each node in the given snapshot object
+    */
+    selblocks.xp.foreachNode= function(nodeSet, callbackFunc)
+    {
+      if (!nodeSet)
+        return;
+      var i = 0;
+      var n = nodeSet.snapshotItem(i);
+      while (n != null) {
+        var result = callbackFunc($$.unwrapObject(n), i);
+        if (result == false) {
+          return; // the callbackFunc can abort the loop by returning false
+        }
+        n = nodeSet.snapshotItem(++i);
+      }
+    };
+
+    /** Format an xpath result according to its data type
+    */
+    selblocks.xp.fmtXpathResultType= function(result)
+    {
+      if (!result) return null;
+      switch (result.resultType) {
+        case result.STRING_TYPE:                  return "'" + result.stringValue + "'";
+        case result.NUMBER_TYPE:                  return result.numberValue;
+        case result.BOOLEAN_TYPE:                 return result.booleanValue;
+        case result.ANY_UNORDERED_NODE_TYPE:      return "uNODE " + result.singleNodeValue;
+        case result.FIRST_ORDERED_NODE_TYPE:      return "oNODE " + result.singleNodeValue;
+        case result.UNORDERED_NODE_SNAPSHOT_TYPE: return result.snapshotLength + " uNODEs";
+        case result.ORDERED_NODE_SNAPSHOT_TYPE:   return result.snapshotLength + " oNODEs";
+        case result.UNORDERED_NODE_ITERATOR_TYPE: return "uITR";
+        case result.ORDERED_NODE_ITERATOR_TYPE:   return "oITR";
+      }
+      return result;
+    };
+
+    /** Log an xpath result
+     */
+    selblocks.xp.logXpathEval= function(doc, xpath, contextNode)
+    {
+      $$.LOG.debug("XPATH: " + xpath);
+      if (contextNode &amp;&amp; contextNode != doc) {
+        $$.LOG.debug("XPATH Context: " + contextNode);
+      }
+    };
+})( selblocks );
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Abstract.html">Abstract</a></li><li><a href="CellInfo.html">CellInfo</a></li><li><a href="Column.html">Column</a></li><li><a href="Constructor.html">Constructor</a></li><li><a href="Create.html">Create</a></li><li><a href="FilledIn.html">FilledIn</a></li><li><a href="global.TestCaseDebugContext.html">TestCaseDebugContext</a></li><li><a href="RowInfo.html">RowInfo</a></li><li><a href="RowLevel.html">RowLevel</a></li><li><a href="RowLevelOrColumn.html">RowLevelOrColumn</a></li><li><a href="selblocks.Logger.html">Logger</a></li><li><a href="Selenium.html">Selenium</a></li><li><a href="SeLiteData.Db.html">Db</a></li><li><a href="SeLiteData.Table.html">Table</a></li><li><a href="SeLiteMisc.Enum.html">Enum</a></li><li><a href="SeLiteSettings.FieldInformation.html">FieldInformation</a></li><li><a href="SeLiteSettings.TestDbKeeper.html">TestDbKeeper</a></li><li><a href="SeLiteSettings.TestDbKeeper.Columns.html">Columns</a></li><li><a href="ValueSource.html">ValueSource</a></li></ul><h3>Namespaces</h3><ul><li><a href="global.html#global">global</a></li><li><a href="selblocks.html">selblocks</a></li><li><a href="selblocks.fn.html">fn</a></li><li><a href="selblocks.InfixExpressionParser.html">InfixExpressionParser</a></li><li><a href="selblocks.xp.html">xp</a></li><li><a href="SeLiteAutoCheck.html">SeLiteAutoCheck</a></li><li><a href="SeLiteData.html">SeLiteData</a></li><li><a href="SeLiteMisc.html">SeLiteMisc</a></li><li><a href="SeLiteSettings.html">SeLiteSettings</a></li></ul><h3>Global</h3><ul><li><a href="global.html#'static'">'static'</a></li><li><a href="global.html#allowMultivaluedNonChoices">allowMultivaluedNonChoices</a></li><li><a href="global.html#applicableColumns">applicableColumns</a></li><li><a href="global.html#array">array</a></li><li><a href="global.html#Array">Array</a></li><li><a href="global.html#bool">bool</a></li><li><a href="global.html#cachedManifests">cachedManifests</a></li><li><a href="global.html#cacheRatio">cacheRatio</a></li><li><a href="global.html#callStack">callStack</a></li><li><a href="global.html#checkField">checkField</a></li><li><a href="global.html#chooseFileOrFolder">chooseFileOrFolder</a></li><li><a href="global.html#chooseJavascriptFile">chooseJavascriptFile</a></li><li><a href="global.html#createTreeChildren">createTreeChildren</a></li><li><a href="global.html#directChildList">directChildList</a></li><li><a href="global.html#directRequisiteIncompatible">directRequisiteIncompatible</a></li><li><a href="global.html#Dotclear">Dotclear</a></li><li><a href="global.html#Drupal">Drupal</a></li><li><a href="global.html#ensureFieldName">ensureFieldName</a></li><li><a href="global.html#expandStoredVars">expandStoredVars</a></li><li><a href="global.html#fieldTreeRow">fieldTreeRow</a></li><li><a href="global.html#format">format</a></li><li><a href="global.html#formatCommands">formatCommands</a></li><li><a href="global.html#FUDforum">FUDforum</a></li><li><a href="global.html#generateFields">generateFields</a></li><li><a href="global.html#generateSets">generateSets</a></li><li><a href="global.html#generateTreeColumns">generateTreeColumns</a></li><li><a href="global.html#global#infoURLtoDownloadURL">infoURLtoDownloadURL</a></li><li><a href="global.html#global#int">int</a></li><li><a href="global.html#global#loadXMLDoc">loadXMLDoc</a></li><li><a href="global.html#global#locateConnectionInfo">locateConnectionInfo</a></li><li><a href="global.html#global#Location">Location</a></li><li><a href="global.html#global#manifestsDownToFolder">manifestsDownToFolder</a></li><li><a href="global.html#global#modules">modules</a></li><li><a href="global.html#global#moduleSetFields">moduleSetFields</a></li><li><a href="global.html#global#name">name</a></li><li><a href="global.html#global#Namespace-like">Namespace-like</a></li><li><a href="global.html#global#newValueRow">newValueRow</a></li><li><a href="global.html#global#NTH_RECORD">NTH_RECORD</a></li><li><a href="global.html#global#Null">Null</a></li><li><a href="global.html#global#Object">Object</a></li><li><a href="global.html#global#Only">Only</a></li><li><a href="global.html#global#parse">parse</a></li><li><a href="global.html#global#parseCommandsAndHeader">parseCommandsAndHeader</a></li><li><a href="global.html#global#phpMyFAQ">phpMyFAQ</a></li><li><a href="global.html#global#PluginDetails">PluginDetails</a></li><li><a href="global.html#global#preProcessEdit">preProcessEdit</a></li><li><a href="global.html#global#propertiesPart">propertiesPart</a></li><li><a href="global.html#global#proxyVerifyFieldsObjectHandler">proxyVerifyFieldsObjectHandler</a></li><li><a href="global.html#global#readFile">readFile</a></li><li><a href="global.html#global#removeCommentsGetLines">removeCommentsGetLines</a></li><li><a href="global.html#global#requisiteDetailsSubset">requisiteDetailsSubset</a></li><li><a href="global.html#global#roles">roles</a></li><li><a href="global.html#global#SeLiteMiscClassForVerifiedScope">SeLiteMiscClassForVerifiedScope</a></li><li><a href="global.html#global#Serendipity">Serendipity</a></li><li><a href="global.html#global#Serving">Serving</a></li><li><a href="global.html#global#setCellText">setCellText</a></li><li><a href="global.html#global#showingPerFolder">showingPerFolder</a></li><li><a href="global.html#global#SQLiteConnectionInfo">SQLiteConnectionInfo</a></li><li><a href="global.html#global#Static">Static</a></li><li><a href="global.html#global#string">string</a></li><li><a href="global.html#global#treeCell">treeCell</a></li><li><a href="global.html#global#treeColumn">treeColumn</a></li><li><a href="global.html#global#treeColumnElements">treeColumnElements</a></li><li><a href="global.html#global#treeRowsOrChildren">treeRowsOrChildren</a></li><li><a href="global.html#global#unnamedTestSuiteFolderChangeHandlers">unnamedTestSuiteFolderChangeHandlers</a></li><li><a href="global.html#global#updateSpecial">updateSpecial</a></li><li><a href="global.html#global#valueCompound">valueCompound</a></li><li><a href="global.html#global#Whether">Whether</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Fri Jun 10 2016 10:48:03 GMT+1000 (AEST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

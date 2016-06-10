@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: SeLite/testcase-debug-context/src/chrome/content/extensions/testcase-debug-context-ide.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: SeLite/testcase-debug-context/src/chrome/content/extensions/testcase-debug-context-ide.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/*
+ * Copyright 2014, 2016 Peter Kehl
+ * Based on code from Selenium IDE, which is Copyright 2011 Software Freedom Conservancy.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+"use strict";
+
+// Functions set on 'editor' object here are not to be run on 'editor' object, but on TestLoop instance. These functions are set on 'editor' object only because there seems no better place to set them, where they could be intercepted from both Core and IDE extensions.
+
+editor.testLoopResume= function testLoopResume() {
+    var runner = editor.selDebugger.runner;
+    var selenium = runner.selenium;
+    var browserbot = selenium.browserbot;
+    var LOG = runner.LOG;
+    
+    // From TestLoop's resume() in selenium-executionloop.js:
+    LOG.debug("currentTest.resume() - actually execute modified");
+    browserbot.runScheduledPollers();
+
+    runner.Selenium.seLiteBeforeCurrentCommand.call();
+
+    // Following is from TestLoop's _executeCurrentCommand() in selenium-runner.js
+    var command = this.currentCommand;
+    LOG.info("Executing: |" + command.command + " | " + command.target + " | " + command.value + " |");
+
+    var command = this.currentCommand;
+    var handler = this.commandFactory.getCommandHandler(command.command);
+    if( handler===undefined ) {
+        this._handleCommandError( SeleniumError("Unknown command: '" + command.command + "'") );
+        this.testComplete(); // Simplified version of error handling in resume(), since this._handleCommandError() returns true for this error
+        return;
+    }
+    
+    command.target = selenium.preprocessParameter(command.target);
+    command.value = selenium.preprocessParameter(command.value);
+    LOG.debug("Command found, going to execute " + command.command);
+
+    runner.updateStats(command.command);
+    // end of code based on _executeCurrentCommand() - except for a few lines, which are handled in testLoopResumeExecuteAndHandleErrors() below
+    editor.testLoopResumeExecuteAndHandleErrors.call( this, command, handler );
+};
+
+/** This is called when this.result.failed is true in editor.testLoopResumeExecuteAndHandleErrors() - i.e. after a verification failure.
+ * */
+editor.testLoopResumeHandleFailedResult= function testLoopResumeHandleFailedResult() {};
+
+/** This is called when there's an error caught in editor.testLoopResumeExecuteAndHandleErrors() - i.e. after a command failure or an assertion failure. */
+editor.testLoopResumeHandleError= function testLoopResumeHandleError(e) {
+    if (!this._handleCommandError(e)) {
+        this.testComplete();
+    } else {
+        this.continueTest();
+    }
+};
+
+/** This replaces _executeCurrentCommand() and a part of resume(), both from selenium-executionloop.js.
+ */
+editor.testLoopResumeExecuteAndHandleErrors= function testLoopResumeExecuteAndHandleErrors( command, handler ) {
+    LOG.debug('testLoopResumeExecuteAndHandleErrors starts');
+    var selenium = editor.selDebugger.runner.selenium;
+    try{
+        this.result = handler.execute(selenium, command); // from _executeCurrentCommand()
+        this.waitForCondition = this.result.terminationCondition; // from _executeCurrentCommand()
+        editor.selDebugger.runner.Selenium.seLiteAfterCurrentCommand.call( this );
+        if( this.result.failed ) {
+            LOG.debug('testLoopResumeExecuteAndHandleErrors failure -> testLoopResumeHandleFailedResult');
+            editor.testLoopResumeHandleFailedResult.call( this );
+        }
+        LOG.debug('testLoopResumeExecuteAndHandleErrors -> continueTestWhenConditionIsTrue');
+        this.continueTestWhenConditionIsTrue(); // from resume()
+    }
+    catch( e ) {
+        LOG.debug('testLoopResumeExecuteAndHandleErrors caught');
+        var callFrame= selenium.callStack().top();
+        if( callFrame.frameFromAsync ) { // This stack call frame was invoked from selenium.callBackOutFlow(). Hence it has no Selenese try..catch/finally envolope. However, it needs special handling, to pass control back to JS level that invoked selenium.callBackOutFlow().
+            if( selenium.handleCommandError(e) ) {
+                this.continueTestWhenConditionIsTrue();
+            }
+            else {
+                !callFrame.onFailure || callFrame.onFailure();
+                this.testComplete();
+            }
+            return;
+        }
+        editor.testLoopResumeHandleError.call( this, e );
+    }
+};
+
+setTimeout( //waits until all the sub-scripts are loaded. Only then it can overload selDebugger.init().
+    function() {
+        // In Firefox 48.0a1 (2016-03-08) setTimeout() runs immediately (async?)
+        // even when e10s electrolysis is off. Hence two ways of tail-override of selDebugger.init():
+        var selDebuggerInitOriginal;
+        var selDebuggerInitSeLite= function selDebuggerInitSeLite() {
+            selDebuggerInitOriginal.call( this );
+            this.runner.IDETestLoop.prototype.resume= editor.testLoopResume;
+            
+            /** Based on continueTestWhenConditionIsTrue() in TestLoop.prototype in selenium-executionloop.js.
+             *  Both the original and the following derivative get called via two paths in Selenium IDE:
+             * 1. from testLoopResume() -> testLoopResumeExecuteAndHandleErrors() above (original: TestLoop.prototype's resume() in selenium-executionloop.js) when command evaluation didn't pause via setTimeout() - yet or if it doesn't use setTimeout() at all; or
+             * 2. from IDETestLoop.prototype.continueTestWhenConditionIsTrue() in selenium-runner.js in case of timeout function-decorated commands, if those are called for the 2nd or further time (via setTimeout()).
+             * #2 originally didn't handle exceptions in the command's continue test, or the timeout. Hence the following adds handling of those exceptions, and it calls editor.testLoopResumeHandleError().
+             * */
+            this.runner.TestLoop.prototype.continueTestWhenConditionIsTrue= function continueTestWhenConditionIsTrue() {
+                var runner = editor.selDebugger.runner;
+                var selenium = runner.selenium;
+                selenium.browserbot.runScheduledPollers();
+                
+                if (this.waitForCondition == null) {
+                    LOG.debug("null condition; let's continueTest()");
+                    LOG.debug("Command complete");
+                    this.commandComplete(this.result);
+                    this.continueTest();
+                } else {
+                    var waitForConditionResult;
+                    try {
+                        waitForConditionResult= this.waitForCondition();
+                    }
+                    catch( e ) {
+                        // Handling an exception in path #2 (see above):
+                        LOG.debug("waitForCondition() failed or was repeated until it timed out.");
+                        editor.testLoopResumeHandleError.call( this, e );
+                        return;
+                    }
+                    if( waitForConditionResult ) {
+                        LOG.debug("condition satisfied; let's continueTest()");
+                        this.waitForCondition = null;
+                        LOG.debug("Command complete");
+                        this.commandComplete(this.result);
+                        this.continueTest();
+                    } else {
+                        LOG.debug("waitForCondition() was false; keep waiting!");
+                        window.setTimeout(fnBind(this.continueTestWhenConditionIsTrue, this), 10);
+                    }
+                }
+            };
+        }
+        if( editor.selDebugger ) {
+            selDebuggerInitOriginal= editor.selDebugger.init;
+            editor.selDebugger.init= selDebuggerInitSeLite;
+        }
+        else {
+            var debuggerOriginal= Debugger;
+            Debugger= function DebuggerSeLite(editor) {
+                debuggerOriginal.call( this, editor );
+                selDebuggerInitOriginal= this.init;
+                this.init= selDebuggerInitSeLite;
+            };
+            Debugger.prototype= debuggerOriginal.prototype;
+        }
+    },
+    0
+);
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Abstract.html">Abstract</a></li><li><a href="CellInfo.html">CellInfo</a></li><li><a href="Column.html">Column</a></li><li><a href="Constructor.html">Constructor</a></li><li><a href="Create.html">Create</a></li><li><a href="FilledIn.html">FilledIn</a></li><li><a href="global.TestCaseDebugContext.html">TestCaseDebugContext</a></li><li><a href="RowInfo.html">RowInfo</a></li><li><a href="RowLevel.html">RowLevel</a></li><li><a href="RowLevelOrColumn.html">RowLevelOrColumn</a></li><li><a href="selblocks.Logger.html">Logger</a></li><li><a href="Selenium.html">Selenium</a></li><li><a href="SeLiteData.Db.html">Db</a></li><li><a href="SeLiteData.Table.html">Table</a></li><li><a href="SeLiteMisc.Enum.html">Enum</a></li><li><a href="SeLiteSettings.FieldInformation.html">FieldInformation</a></li><li><a href="SeLiteSettings.TestDbKeeper.html">TestDbKeeper</a></li><li><a href="SeLiteSettings.TestDbKeeper.Columns.html">Columns</a></li><li><a href="ValueSource.html">ValueSource</a></li></ul><h3>Namespaces</h3><ul><li><a href="global.html#global">global</a></li><li><a href="selblocks.html">selblocks</a></li><li><a href="selblocks.fn.html">fn</a></li><li><a href="selblocks.InfixExpressionParser.html">InfixExpressionParser</a></li><li><a href="selblocks.xp.html">xp</a></li><li><a href="SeLiteAutoCheck.html">SeLiteAutoCheck</a></li><li><a href="SeLiteData.html">SeLiteData</a></li><li><a href="SeLiteMisc.html">SeLiteMisc</a></li><li><a href="SeLiteSettings.html">SeLiteSettings</a></li></ul><h3>Global</h3><ul><li><a href="global.html#'static'">'static'</a></li><li><a href="global.html#allowMultivaluedNonChoices">allowMultivaluedNonChoices</a></li><li><a href="global.html#applicableColumns">applicableColumns</a></li><li><a href="global.html#array">array</a></li><li><a href="global.html#Array">Array</a></li><li><a href="global.html#bool">bool</a></li><li><a href="global.html#cachedManifests">cachedManifests</a></li><li><a href="global.html#cacheRatio">cacheRatio</a></li><li><a href="global.html#callStack">callStack</a></li><li><a href="global.html#checkField">checkField</a></li><li><a href="global.html#chooseFileOrFolder">chooseFileOrFolder</a></li><li><a href="global.html#chooseJavascriptFile">chooseJavascriptFile</a></li><li><a href="global.html#createTreeChildren">createTreeChildren</a></li><li><a href="global.html#directChildList">directChildList</a></li><li><a href="global.html#directRequisiteIncompatible">directRequisiteIncompatible</a></li><li><a href="global.html#Dotclear">Dotclear</a></li><li><a href="global.html#Drupal">Drupal</a></li><li><a href="global.html#ensureFieldName">ensureFieldName</a></li><li><a href="global.html#expandStoredVars">expandStoredVars</a></li><li><a href="global.html#fieldTreeRow">fieldTreeRow</a></li><li><a href="global.html#format">format</a></li><li><a href="global.html#formatCommands">formatCommands</a></li><li><a href="global.html#FUDforum">FUDforum</a></li><li><a href="global.html#generateFields">generateFields</a></li><li><a href="global.html#generateSets">generateSets</a></li><li><a href="global.html#generateTreeColumns">generateTreeColumns</a></li><li><a href="global.html#global#infoURLtoDownloadURL">infoURLtoDownloadURL</a></li><li><a href="global.html#global#int">int</a></li><li><a href="global.html#global#loadXMLDoc">loadXMLDoc</a></li><li><a href="global.html#global#locateConnectionInfo">locateConnectionInfo</a></li><li><a href="global.html#global#Location">Location</a></li><li><a href="global.html#global#manifestsDownToFolder">manifestsDownToFolder</a></li><li><a href="global.html#global#modules">modules</a></li><li><a href="global.html#global#moduleSetFields">moduleSetFields</a></li><li><a href="global.html#global#name">name</a></li><li><a href="global.html#global#Namespace-like">Namespace-like</a></li><li><a href="global.html#global#newValueRow">newValueRow</a></li><li><a href="global.html#global#NTH_RECORD">NTH_RECORD</a></li><li><a href="global.html#global#Null">Null</a></li><li><a href="global.html#global#Object">Object</a></li><li><a href="global.html#global#Only">Only</a></li><li><a href="global.html#global#parse">parse</a></li><li><a href="global.html#global#parseCommandsAndHeader">parseCommandsAndHeader</a></li><li><a href="global.html#global#phpMyFAQ">phpMyFAQ</a></li><li><a href="global.html#global#PluginDetails">PluginDetails</a></li><li><a href="global.html#global#preProcessEdit">preProcessEdit</a></li><li><a href="global.html#global#propertiesPart">propertiesPart</a></li><li><a href="global.html#global#proxyVerifyFieldsObjectHandler">proxyVerifyFieldsObjectHandler</a></li><li><a href="global.html#global#readFile">readFile</a></li><li><a href="global.html#global#removeCommentsGetLines">removeCommentsGetLines</a></li><li><a href="global.html#global#requisiteDetailsSubset">requisiteDetailsSubset</a></li><li><a href="global.html#global#roles">roles</a></li><li><a href="global.html#global#SeLiteMiscClassForVerifiedScope">SeLiteMiscClassForVerifiedScope</a></li><li><a href="global.html#global#Serendipity">Serendipity</a></li><li><a href="global.html#global#Serving">Serving</a></li><li><a href="global.html#global#setCellText">setCellText</a></li><li><a href="global.html#global#showingPerFolder">showingPerFolder</a></li><li><a href="global.html#global#SQLiteConnectionInfo">SQLiteConnectionInfo</a></li><li><a href="global.html#global#Static">Static</a></li><li><a href="global.html#global#string">string</a></li><li><a href="global.html#global#treeCell">treeCell</a></li><li><a href="global.html#global#treeColumn">treeColumn</a></li><li><a href="global.html#global#treeColumnElements">treeColumnElements</a></li><li><a href="global.html#global#treeRowsOrChildren">treeRowsOrChildren</a></li><li><a href="global.html#global#unnamedTestSuiteFolderChangeHandlers">unnamedTestSuiteFolderChangeHandlers</a></li><li><a href="global.html#global#updateSpecial">updateSpecial</a></li><li><a href="global.html#global#valueCompound">valueCompound</a></li><li><a href="global.html#global#Whether">Whether</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Fri Jun 10 2016 10:48:03 GMT+1000 (AEST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
